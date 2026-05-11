@@ -1,8 +1,15 @@
 # Game Design Plan
 
-本文档用于确认两层级 Backrooms-like first-person horror demo 怎么做。游戏方案、候选层级、选择题和会议输出集中维护在这里。
+本文档用于确认两层级 Backrooms-like first-person horror demo。使用方式：
 
-## Default Game Direction
+1. 查看参考图和候选方案。
+2. 在每个 `Decision` 分组中只勾选一个选项。
+3. 保存并提交本文档。
+4. 让 Codex 根据已勾选选项生成 `Docs/PROJECT.md` 和 `Docs/TODO.md`。
+
+如果某组出现多个勾选项，Codex 会要求重新确认。
+
+## Default Direction
 
 推荐默认方案：
 
@@ -17,132 +24,147 @@
 目标平台：Unity Editor / Simulator 优先，Quest 后续评估
 ```
 
-推荐原因：两层级结构足够完整，Level 0 的辨识度高，Level 2 的工业空间容易做出压迫感和分支结局，同时不需要复杂敌人 AI 或大型场景资产。
-
 ## Reference Boundary
 
 Backrooms Wiki 可作为灵感来源，但项目应优先做原创化表达。
 
 - 不直接复制 Wiki 长文本。
-- 不直接使用 Wiki 图片或音频，除非确认授权并保留署名。
+- 不直接使用 Wiki 图片或音频作为项目资产，除非确认授权并保留署名。
+- 本文档中的图片只作为设计讨论参考，不表示会进入游戏工程。
 - 如使用 Wiki 的层级名称、设定或页面内容，应遵守来源页面的许可要求；Wiki 页脚标注为 Creative Commons Attribution-ShareAlike 3.0 License。
-- 项目文档中保留参考链接，实际剧情、谜题、房间布局和资产尽量原创。
+- 实际剧情、谜题、房间布局和资产尽量原创。
 
-参考入口：
+## Reference Images
 
-- Backrooms Wiki CN: https://backrooms-wiki-cn.wikidot.com/
-- Normal Levels list: https://backrooms-wiki-cn.wikidot.com/normal-levels-i
-- Level 0: https://backrooms-wiki-cn.wikidot.com/level-0
-- Level 2: https://backrooms-wiki-cn.wikidot.com/level-2
-- Level 4: https://backrooms-wiki-cn.wikidot.com/level-4
-- Level 5: https://backrooms-wiki-cn.wikidot.com/level-5
-- Level 6: https://backrooms-wiki-cn.wikidot.com/level-6
-- Level 37: https://backrooms-wiki-cn.wikidot.com/level-37
+### Level 0
 
-## Candidate Level Pairs
+<img src="https://backrooms-wiki.wdfiles.com/local--files/level-0/OGLevel0.jpg" alt="Level 0 reference image" width="520">
 
-### A. Level 0 -> Level 2（推荐）
+- 来源：[Level 0 - “教学关卡”](https://backrooms-wiki-cn.wikidot.com/level-0)
+- 设计价值：初始层级辨识度最高，黄色墙纸、潮湿地毯、荧光灯噪音适合做进入后室的第一印象。
 
-- 核心体验：从黄色迷宫进入工业管道和维护走廊。
-- 优点：空间好做、恐怖氛围强、双结局容易设计。
-- 风险：需要做好音效、灯光和追逐节奏，否则容易变成普通走廊。
-- 适合结局：正确启动电力门后逃离；错误进入深处后被困或触发坏结局。
+### Level 2
 
-### B. Level 0 -> Level 4
+<img src="https://backrooms-wiki.wdfiles.com/local--files/level-2/2first.jpg" alt="Level 2 reference image" width="520">
 
-- 核心体验：从迷宫进入空旷办公室或办公楼层。
-- 优点：资产简单，适合做钥匙、文件、终端和路线选择。
-- 风险：恐怖感较弱，需要靠事件和声音弥补。
-- 适合结局：找到出口电梯离开；误信错误指引进入未知区域。
+- 来源：[Level 2 - “废弃公共带”](https://backrooms-wiki-cn.wikidot.com/level-2)
+- 设计价值：工业管道、狭窄走廊、局部黑暗适合做压迫感、追逐、断电和双结局。
 
-### C. Level 0 -> Level 5
+### Level 4
 
-- 核心体验：从迷宫进入复古酒店或宴会厅。
-- 优点：美术辨识度强，适合做剧情碎片和压迫氛围。
-- 风险：对场景资产、灯光和装饰要求较高。
-- 适合结局：完成仪式或解谜离开；留在酒店循环。
+<img src="https://backrooms-wiki.wdfiles.com/local--files/level-4/Level-4-new" alt="Level 4 reference image" width="520">
 
-### D. Level 0 -> Level 6
+- 来源：[Level 4 - “废弃办公室”](https://backrooms-wiki-cn.wikidot.com/level-4)
+- 设计价值：空办公区资源需求低，适合文件、终端、密码和错误窗口陷阱。
 
-- 核心体验：从明亮迷宫进入近乎全黑空间。
-- 优点：素材成本低，适合用声音和心理压力制造恐怖。
-- 风险：如果缺少引导，玩家容易迷路或无聊。
-- 适合结局：跟随正确声音找到出口；跟随错误声音进入坏结局。
+### Level 5
 
-### E. Level 0 -> Level 37
+<img src="https://backrooms-wiki.wdfiles.com/local--files/level-5/Level-5-1-cc.png" alt="Level 5 reference image" width="520">
 
-- 核心体验：从干燥迷宫进入蓝色泳池空间。
-- 优点：视觉反差大，适合做安静但诡异的恐怖。
-- 风险：水体、反射、空间美术成本更高。
-- 适合结局：找到正确泳池出口；潜入错误区域后失踪。
+- 来源：[Level 5 - “恐怖旅馆”](https://backrooms-wiki-cn.wikidot.com/level-5)
+- 设计价值：酒店大厅氛围强，适合剧情碎片、复古音乐、仪式感结局。
 
-## Design Decisions
+### Level 6
 
-讨论时逐项选择。没有强烈分歧时使用推荐项。
+<img src="https://backrooms-wiki.wdfiles.com/local--files/level-6/level6map.jpg" alt="Level 6 reference image" width="520">
 
-### 1. Core Theme
+- 来源：[Level 6 - “熄灯”](https://backrooms-wiki-cn.wikidot.com/level-6)
+- 设计价值：几乎全黑，资产成本低，但需要很强的声音引导、心理恐怖和可读性设计。
 
-- A. 迷失与逃离（推荐）：目标清楚，适合短 demo。
-- B. 调查与记录：更强调文件、录音和环境叙事。
-- C. 追逐与生存：更刺激，但需要敌人或危险系统。
+### Level 37
 
-### 2. Second Level
+<img src="https://backrooms-wiki.wdfiles.com/local--files/level-37/Poolrooms-1.jpg" alt="Level 37 reference image" width="520">
 
-- A. Level 2 风格工业隧道（推荐）：压迫感强，实现成本适中。
-- B. Level 4 风格办公室：更容易实现，但恐怖感较弱。
-- C. Level 5 风格酒店：氛围强，但美术成本高。
-- D. Level 6 风格黑暗空间：低资产成本，高音效和引导要求。
-- E. Level 37 风格泳池空间：视觉独特，但水体实现成本高。
+- 来源：[Level 37 - “崇高”](https://backrooms-wiki-cn.wikidot.com/level-37)
+- 设计价值：泳池空间视觉反差大，适合安静、失真、溺水或错误通道结局，但水体成本较高。
 
-### 3. Gameplay Focus
+## Decision Form
 
-- A. 探索 + 简单解谜（推荐）：最适合零经验项目。
-- B. 探索 + 追逐：更有紧张感，需要实体和逃跑路线。
-- C. 探索 + 资源管理：加入电池、理智值或氧气，但 UI 和数值更多。
+每组只勾选一个选项。推荐项已排在 A。
 
-### 4. Ending Design
+### Decision 1: Core Theme
 
-- A. 第二层两个出口（推荐）：一个好结局，一个坏结局。
-- B. 一个出口 + 一个隐藏条件：普通结局和真结局。
-- C. 倒计时失败结局：超时触发坏结局。
+<!-- decision:start core_theme -->
+- [ ] A. 迷失与逃离（推荐）：目标清楚，适合短 demo。
+- [ ] B. 调查与记录：强调文件、录音和环境叙事。
+- [ ] C. 追逐与生存：更刺激，但需要实体或危险系统。
+<!-- decision:end core_theme -->
 
-### 5. Entity Design
+### Decision 2: Second Level
 
-- A. 无直接实体（推荐）：用声音、灯光、脚步和远处影子制造压力。
-- B. 一个巡逻实体：实现简单追逐或躲避。
-- C. 一个事件型实体：只在关键节点出现，降低 AI 难度。
+<!-- decision:start second_level -->
+- [ ] A. Level 2 风格工业隧道（推荐）：压迫感强，实现成本适中。
+- [ ] B. Level 4 风格办公室：更容易实现，但恐怖感较弱。
+- [ ] C. Level 5 风格酒店：氛围强，但美术成本高。
+- [ ] D. Level 6 风格黑暗空间：低资产成本，高音效和引导要求。
+- [ ] E. Level 37 风格泳池空间：视觉独特，但水体实现成本高。
+<!-- decision:end second_level -->
 
-### 6. Puzzle Design
+### Decision 3: Gameplay Focus
 
-- A. 三个钥匙物开门（推荐）：最直观，容易实现。
-- B. 找密码开门：适合办公区或终端玩法。
-- C. 修复电力系统：适合 Level 2 工业层级。
-- D. 跟随声音或灯光：适合 Level 6，但需要好的引导。
+<!-- decision:start gameplay_focus -->
+- [ ] A. 探索 + 简单解谜（推荐）：最适合零经验项目。
+- [ ] B. 探索 + 追逐：更有紧张感，需要实体和逃跑路线。
+- [ ] C. 探索 + 资源管理：加入电池、理智值或氧气，但 UI 和数值更多。
+<!-- decision:end gameplay_focus -->
 
-### 7. Player Tools
+### Decision 4: Ending Design
 
-- A. 手电筒（推荐）：恐怖游戏基础工具，能配合电池。
-- B. 摄像机：适合录制、夜视和 UI 风格。
-- C. 指南针或探测器：适合迷宫导航。
+<!-- decision:start ending_design -->
+- [ ] A. 第二层两个出口（推荐）：一个好结局，一个坏结局。
+- [ ] B. 一个出口 + 一个隐藏条件：普通结局和真结局。
+- [ ] C. 倒计时失败结局：超时触发坏结局。
+<!-- decision:end ending_design -->
 
-### 8. Failure Pressure
+### Decision 5: Entity Design
 
-- A. 低压探索（推荐）：适合第一版，玩家主要体验氛围。
-- B. 电池消耗：增加资源压力，但要控制难度。
-- C. 实体追逐：刺激，但实现和调试成本更高。
-- D. 理智值下降：氛围强，但反馈设计要清楚。
+<!-- decision:start entity_design -->
+- [ ] A. 无直接实体（推荐）：用声音、灯光、脚步和远处影子制造压力。
+- [ ] B. 一个巡逻实体：实现简单追逐或躲避。
+- [ ] C. 一个事件型实体：只在关键节点出现，降低 AI 难度。
+<!-- decision:end entity_design -->
 
-### 9. Level Transition
+### Decision 6: Puzzle Design
 
-- A. 找到异常门进入第二层（推荐）：最容易表达。
-- B. 掉入地面裂缝或 noclip：符合后室气质，但需要过场设计。
-- C. 电梯或维修通道：适合 Level 2 或 Level 4。
+<!-- decision:start puzzle_design -->
+- [ ] A. 三个钥匙物开门（推荐）：最直观，容易实现。
+- [ ] B. 找密码开门：适合办公区或终端玩法。
+- [ ] C. 修复电力系统：适合 Level 2 工业层级。
+- [ ] D. 跟随声音或灯光：适合 Level 6，但需要好的引导。
+<!-- decision:end puzzle_design -->
 
-### 10. Visual Style
+### Decision 7: Player Tool
 
-- A. 低成本写实 + 程序化重复空间（推荐）：适合后室迷宫感。
-- B. 低多边形恐怖：实现快，但风格需要统一。
-- C. 高写实恐怖：效果好，但资源和性能压力高。
+<!-- decision:start player_tool -->
+- [ ] A. 手电筒（推荐）：恐怖游戏基础工具，能配合电池。
+- [ ] B. 摄像机：适合录制、夜视和 UI 风格。
+- [ ] C. 指南针或探测器：适合迷宫导航。
+<!-- decision:end player_tool -->
+
+### Decision 8: Failure Pressure
+
+<!-- decision:start failure_pressure -->
+- [ ] A. 低压探索（推荐）：适合第一版，玩家主要体验氛围。
+- [ ] B. 电池消耗：增加资源压力，但要控制难度。
+- [ ] C. 实体追逐：刺激，但实现和调试成本更高。
+- [ ] D. 理智值下降：氛围强，但反馈设计要清楚。
+<!-- decision:end failure_pressure -->
+
+### Decision 9: Level Transition
+
+<!-- decision:start level_transition -->
+- [ ] A. 找到异常门进入第二层（推荐）：最容易表达。
+- [ ] B. 掉入地面裂缝或 noclip：符合后室气质，但需要过场设计。
+- [ ] C. 电梯或维修通道：适合 Level 2 或 Level 4。
+<!-- decision:end level_transition -->
+
+### Decision 10: Visual Style
+
+<!-- decision:start visual_style -->
+- [ ] A. 低成本写实 + 程序化重复空间（推荐）：适合后室迷宫感。
+- [ ] B. 低多边形恐怖：实现快，但风格需要统一。
+- [ ] C. 高写实恐怖：效果好，但资源和性能压力高。
+<!-- decision:end visual_style -->
 
 ## Minimum Demo Scope
 
@@ -167,7 +189,7 @@ Backrooms Wiki 可作为灵感来源，但项目应优先做原创化表达。
 
 ## Meeting Output
 
-讨论结束后，将结论写入 `Docs/PROJECT.md`：
+勾选完成后，Codex 将自动整理以下内容到 `Docs/PROJECT.md`：
 
 ```text
 Game Name:
@@ -187,4 +209,4 @@ Nice To Have:
 Out Of Scope:
 ```
 
-确认 `Docs/PROJECT.md` 后，再把第一轮任务写入 `Docs/TODO.md`。
+随后 Codex 会根据 `Docs/PROJECT.md` 拆解第一轮任务到 `Docs/TODO.md`。
