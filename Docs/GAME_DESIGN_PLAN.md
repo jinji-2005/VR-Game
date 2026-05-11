@@ -30,7 +30,7 @@ Backrooms Wiki 可作为灵感来源，但项目应优先做原创化表达。
 
 - 不直接复制 Wiki 长文本。
 - 不直接使用 Wiki 图片或音频作为项目资产，除非确认授权并保留署名。
-- 本文档中的图片只作为设计讨论参考，不表示会进入游戏工程。
+- 本文档中的图片已复制到 `Docs/Images/backrooms/`，只作为设计讨论参考，不表示会进入游戏工程。
 - 如使用 Wiki 的层级名称、设定或页面内容，应遵守来源页面的许可要求；Wiki 页脚标注为 Creative Commons Attribution-ShareAlike 3.0 License。
 - 实际剧情、谜题、房间布局和资产尽量原创。
 
@@ -38,42 +38,42 @@ Backrooms Wiki 可作为灵感来源，但项目应优先做原创化表达。
 
 ### Level 0
 
-<img src="https://backrooms-wiki.wdfiles.com/local--files/level-0/OGLevel0.jpg" alt="Level 0 reference image" width="520">
+<img src="Images/backrooms/level-0.jpg" alt="Level 0 reference image" width="520">
 
 - 来源：[Level 0 - “教学关卡”](https://backrooms-wiki-cn.wikidot.com/level-0)
 - 设计价值：初始层级辨识度最高，黄色墙纸、潮湿地毯、荧光灯噪音适合做进入后室的第一印象。
 
 ### Level 2
 
-<img src="https://backrooms-wiki.wdfiles.com/local--files/level-2/2first.jpg" alt="Level 2 reference image" width="520">
+<img src="Images/backrooms/level-2.jpg" alt="Level 2 reference image" width="520">
 
 - 来源：[Level 2 - “废弃公共带”](https://backrooms-wiki-cn.wikidot.com/level-2)
 - 设计价值：工业管道、狭窄走廊、局部黑暗适合做压迫感、追逐、断电和双结局。
 
 ### Level 4
 
-<img src="https://backrooms-wiki.wdfiles.com/local--files/level-4/Level-4-new" alt="Level 4 reference image" width="520">
+<img src="Images/backrooms/level-4.jpg" alt="Level 4 reference image" width="520">
 
 - 来源：[Level 4 - “废弃办公室”](https://backrooms-wiki-cn.wikidot.com/level-4)
 - 设计价值：空办公区资源需求低，适合文件、终端、密码和错误窗口陷阱。
 
 ### Level 5
 
-<img src="https://backrooms-wiki.wdfiles.com/local--files/level-5/Level-5-1-cc.png" alt="Level 5 reference image" width="520">
+<img src="Images/backrooms/level-5.png" alt="Level 5 reference image" width="520">
 
 - 来源：[Level 5 - “恐怖旅馆”](https://backrooms-wiki-cn.wikidot.com/level-5)
 - 设计价值：酒店大厅氛围强，适合剧情碎片、复古音乐、仪式感结局。
 
 ### Level 6
 
-<img src="https://backrooms-wiki.wdfiles.com/local--files/level-6/level6map.jpg" alt="Level 6 reference image" width="520">
+<img src="Images/backrooms/level-6.jpg" alt="Level 6 reference image" width="520">
 
 - 来源：[Level 6 - “熄灯”](https://backrooms-wiki-cn.wikidot.com/level-6)
 - 设计价值：几乎全黑，资产成本低，但需要很强的声音引导、心理恐怖和可读性设计。
 
 ### Level 37
 
-<img src="https://backrooms-wiki.wdfiles.com/local--files/level-37/Poolrooms-1.jpg" alt="Level 37 reference image" width="520">
+<img src="Images/backrooms/level-37.jpg" alt="Level 37 reference image" width="520">
 
 - 来源：[Level 37 - “崇高”](https://backrooms-wiki-cn.wikidot.com/level-37)
 - 设计价值：泳池空间视觉反差大，适合安静、失真、溺水或错误通道结局，但水体成本较高。
