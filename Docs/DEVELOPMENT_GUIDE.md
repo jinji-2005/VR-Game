@@ -9,9 +9,22 @@
 - `README.md`
 - `Docs/UNITY_PROJECT_GUIDE.md`
 - `Docs/DEVELOPMENT_GUIDE.md`
+- `Docs/GAME_DESIGN_PLAN.md`
+- `Docs/PROJECT.md`，如果已经填写
+- `Docs/TODO.md`，如果已经填写
 - 当前任务涉及的代码、场景或配置
 
 `Docs/PROJECT.md` 和 `Docs/TODO.md` 当前保持空白，待游戏方案确认后补充。
+
+## Agent Start Prompt
+
+给 code agent 分配实现任务时，建议显式要求它先阅读必要文档。可直接使用：
+
+```text
+在开始实现前，请先阅读 README.md、Docs/DEVELOPMENT_GUIDE.md、Docs/UNITY_PROJECT_GUIDE.md、Docs/GAME_DESIGN_PLAN.md、Docs/PROJECT.md、Docs/TODO.md，以及本任务相关的代码和场景文件。遵守 Unity 资源、.meta 文件、Git LFS 和提交范围规则。完成后说明修改内容、验证方式和未验证项。
+```
+
+如果 `Docs/PROJECT.md` 或 `Docs/TODO.md` 仍为空，需要在任务描述中补充本次实现的具体目标。
 
 ## Git Workflow
 
