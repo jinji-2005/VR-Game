@@ -1,13 +1,13 @@
 # VR-Game
 
-Unity VR FPS playable demo for AI3618 2025-2026 Spring.
+Unity first-person horror demo for AI3618 2025-2026 Spring.
 
-本仓库用于开发一个小规模、可运行、可演示的 Unity VR/FPS demo。当前阶段只维护项目结构、协作规则和 Unity 同步流程；核心玩法、关卡目标和任务列表将在方案确认后补充。
+本仓库用于开发一个小规模、可运行、可演示的 Unity 第一人称后室类恐怖 demo。当前阶段维护项目结构、协作规则、Unity 同步流程和方案讨论文档；核心玩法结论和任务列表将在方案确认后补充。
 
 ## Project Direction
 
 - Engine: Unity
-- Genre: VR / FPS
+- Genre: First-person horror / Backrooms-like exploration
 - First target: Simulator / Unity Editor
 - Later target: Quest device, if schedule and device access allow
 
