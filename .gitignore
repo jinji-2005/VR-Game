@@ -46,6 +46,9 @@ sysinfo.txt
 .vscode/
 *.DotSettings.user
 
+# Local tool settings
+.claude/
+
 # Builds and exported packages
 *.apk
 *.aab
@@ -57,6 +60,14 @@ sysinfo.txt
 # Local environment
 .env
 .env.*
+
+# Merge leftovers
+*.orig
+
+# Package editor preference files
+# These are typically local tool/UI preferences rather than shared runtime config.
+ProjectSettings/Packages/com.unity.probuilder/Settings.json
+ProjectSettings/Packages/com.unity.polybrush/Settings.json
 
 # Do not ignore Unity .meta files.
 !*.meta
