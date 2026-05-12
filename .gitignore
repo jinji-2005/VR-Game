@@ -60,3 +60,5 @@ sysinfo.txt
 
 # Do not ignore Unity .meta files.
 !*.meta
+
+**.claude/
