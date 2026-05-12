@@ -57,6 +57,9 @@ sysinfo.txt
 *.x86_64
 *.dmg
 
+# Claude Code
+.claude/
+
 # Local environment
 .env
 .env.*
