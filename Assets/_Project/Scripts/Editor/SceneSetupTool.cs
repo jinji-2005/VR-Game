@@ -161,12 +161,15 @@ public static class SceneSetupTool
 
     private static void SetupDoor()
     {
-        var go = GameObject.Find("Backrooms_Door");
+        // Prefer the real door panel inside TstLevel (has MeshCollider for raycast)
+        var go = GameObject.Find("TstLvl_Door_C_Door");
         if (go == null)
-        {
-            // PF_Level0_Door_A root is named "Door_A_Grp", so also try that name
+            go = GameObject.Find("TstLvl_Door_C_Grp");
+        if (go == null)
+            go = GameObject.Find("Backrooms_Door");
+        if (go == null)
             go = GameObject.Find("Door_A_Grp");
-        }
+
         if (go == null)
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
@@ -174,8 +177,8 @@ public static class SceneSetupTool
             if (prefab != null)
             {
                 go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
-                go.transform.position = new Vector3(0f, 1.45f, 3f);
-                Debug.Log("Instantiated PF_Level0_Door_A. Adjust position in scene if needed.");
+                go.transform.position = new Vector3(-14.5f, 5.662343f, -7.5f);
+                Debug.Log("Instantiated PF_Level0_Door_A at correct position.");
             }
             else
             {
@@ -184,13 +187,30 @@ public static class SceneSetupTool
             }
         }
 
+        if (go.GetComponent<LockedDoor>() != null)
+        {
+            Debug.Log($"Door '{go.name}' already has LockedDoor, skipping.");
+            return;
+        }
+
         var door = EnsureComponent<LockedDoor>(go);
         var so = new SerializedObject(door);
 
-        // PF_Level0_Door_A has child "Door_A_Door" which is the actual door panel
-        var pivot = go.transform.Find("Door_A_Door");
-        if (pivot == null)
+        // For TstLvl_Door_C_Door, the door panel IS the pivot
+        // For PF_Level0_Door_A, the pivot is the "Door_A_Door" child
+        Transform pivot;
+        if (go.name == "TstLvl_Door_C_Door")
+        {
             pivot = go.transform;
+        }
+        else
+        {
+            pivot = go.transform.Find("Door_A_Door");
+            if (pivot == null)
+                pivot = go.transform.Find("TstLvl_Door_C_Door");
+            if (pivot == null)
+                pivot = go.transform;
+        }
 
         so.FindProperty("doorPivot").objectReferenceValue = pivot;
 
@@ -200,7 +220,7 @@ public static class SceneSetupTool
 
         so.ApplyModifiedProperties();
 
-        Debug.Log("Door setup complete.");
+        Debug.Log($"Door setup complete on '{go.name}'.");
     }
 
     private static void SetupTransitionTrigger()
