@@ -360,47 +360,47 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 100000, guid: 20000000000000000000000000000007, type: 3}
+    - target: {fileID: 100000, guid: b901bb408ed042ba98b437c3344975f8, type: 3}
       propertyPath: m_Name
       value: Backrooms_Keycard
       objectReference: {fileID: 0}
-    - target: {fileID: 400000, guid: 20000000000000000000000000000007, type: 3}
+    - target: {fileID: 400000, guid: b901bb408ed042ba98b437c3344975f8, type: 3}
       propertyPath: m_LocalPosition.x
       value: -6
       objectReference: {fileID: 0}
-    - target: {fileID: 400000, guid: 20000000000000000000000000000007, type: 3}
+    - target: {fileID: 400000, guid: b901bb408ed042ba98b437c3344975f8, type: 3}
       propertyPath: m_LocalPosition.y
       value: 1
       objectReference: {fileID: 0}
-    - target: {fileID: 400000, guid: 20000000000000000000000000000007, type: 3}
+    - target: {fileID: 400000, guid: b901bb408ed042ba98b437c3344975f8, type: 3}
       propertyPath: m_LocalPosition.z
       value: -6
       objectReference: {fileID: 0}
-    - target: {fileID: 400000, guid: 20000000000000000000000000000007, type: 3}
+    - target: {fileID: 400000, guid: b901bb408ed042ba98b437c3344975f8, type: 3}
       propertyPath: m_LocalRotation.w
       value: 1
       objectReference: {fileID: 0}
-    - target: {fileID: 400000, guid: 20000000000000000000000000000007, type: 3}
+    - target: {fileID: 400000, guid: b901bb408ed042ba98b437c3344975f8, type: 3}
       propertyPath: m_LocalRotation.x
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 400000, guid: 20000000000000000000000000000007, type: 3}
+    - target: {fileID: 400000, guid: b901bb408ed042ba98b437c3344975f8, type: 3}
       propertyPath: m_LocalRotation.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 400000, guid: 20000000000000000000000000000007, type: 3}
+    - target: {fileID: 400000, guid: b901bb408ed042ba98b437c3344975f8, type: 3}
       propertyPath: m_LocalRotation.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 400000, guid: 20000000000000000000000000000007, type: 3}
+    - target: {fileID: 400000, guid: b901bb408ed042ba98b437c3344975f8, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 400000, guid: 20000000000000000000000000000007, type: 3}
+    - target: {fileID: 400000, guid: b901bb408ed042ba98b437c3344975f8, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 400000, guid: 20000000000000000000000000000007, type: 3}
+    - target: {fileID: 400000, guid: b901bb408ed042ba98b437c3344975f8, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
@@ -408,13 +408,13 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 100000, guid: 20000000000000000000000000000007, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 100000, guid: b901bb408ed042ba98b437c3344975f8, type: 3}
       insertIndex: -1
       addedObject: {fileID: 552746962}
-  m_SourcePrefab: {fileID: 100100000, guid: 20000000000000000000000000000007, type: 3}
+  m_SourcePrefab: {fileID: 100100000, guid: b901bb408ed042ba98b437c3344975f8, type: 3}
 --- !u!1 &552746961 stripped
 GameObject:
-  m_CorrespondingSourceObject: {fileID: 100000, guid: 20000000000000000000000000000007, type: 3}
+  m_CorrespondingSourceObject: {fileID: 100000, guid: b901bb408ed042ba98b437c3344975f8, type: 3}
   m_PrefabInstance: {fileID: 552746960}
   m_PrefabAsset: {fileID: 0}
 --- !u!114 &552746962
@@ -496,97 +496,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &716893923
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 100000, guid: 20000000000000000000000000000004, type: 3}
-      propertyPath: m_Name
-      value: Backrooms_Door
-      objectReference: {fileID: 0}
-    - target: {fileID: 400000, guid: 20000000000000000000000000000004, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 400000, guid: 20000000000000000000000000000004, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 1.45
-      objectReference: {fileID: 0}
-    - target: {fileID: 400000, guid: 20000000000000000000000000000004, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 400000, guid: 20000000000000000000000000000004, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 400000, guid: 20000000000000000000000000000004, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 400000, guid: 20000000000000000000000000000004, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 400000, guid: 20000000000000000000000000000004, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 400000, guid: 20000000000000000000000000000004, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 400000, guid: 20000000000000000000000000000004, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 400000, guid: 20000000000000000000000000000004, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 100000, guid: 20000000000000000000000000000004, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 716893927}
-  m_SourcePrefab: {fileID: 100100000, guid: 20000000000000000000000000000004, type: 3}
---- !u!1 &716893924 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 100000, guid: 20000000000000000000000000000004, type: 3}
-  m_PrefabInstance: {fileID: 716893923}
-  m_PrefabAsset: {fileID: 0}
---- !u!65 &716893925 stripped
-BoxCollider:
-  m_CorrespondingSourceObject: {fileID: 650000, guid: 20000000000000000000000000000004, type: 3}
-  m_PrefabInstance: {fileID: 716893923}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &716893926 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 400000, guid: 20000000000000000000000000000004, type: 3}
-  m_PrefabInstance: {fileID: 716893923}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &716893927
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 716893924}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b6fcdcdd11c5a5d4d87d8ca2fbf4710b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  doorPivot: {fileID: 716893926}
-  openAngle: 90
-  openSpeed: 2
-  doorBlocker: {fileID: 716893925}
 --- !u!1 &770951822
 GameObject:
   m_ObjectHideFlags: 0

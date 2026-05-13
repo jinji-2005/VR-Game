@@ -143,19 +143,18 @@ public static class SceneSetupTool
     {
         var go = GameObject.Find("Backrooms_Keycard");
         if (go == null)
-            go = GameObject.Find("PF_Key0");
-        if (go == null)
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/Backrooms/Backrooms_Keycard.prefab");
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/_Project/Prefabs/Backrooms/Level0/Gameplay/PF_Level0_Keycard.prefab");
             if (prefab != null)
             {
                 go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
                 go.transform.position = new Vector3(-6f, 1f, -6f);
-                Debug.Log("Instantiated Backrooms_Keycard from prefab. Adjust position in scene if needed.");
+                Debug.Log("Instantiated PF_Level0_Keycard. Adjust position in scene if needed.");
             }
             else
             {
-                Debug.LogWarning("Keycard prefab not found and no keycard in scene.");
+                Debug.LogWarning("PF_Level0_Keycard prefab not found.");
                 return;
             }
         }
@@ -173,16 +172,22 @@ public static class SceneSetupTool
         var go = GameObject.Find("Backrooms_Door");
         if (go == null)
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/Backrooms/Backrooms_Door.prefab");
+            // PF_Level0_Door_A root is named "Door_A_Grp", so also try that name
+            go = GameObject.Find("Door_A_Grp");
+        }
+        if (go == null)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/_Project/Prefabs/Backrooms/Level0/Doors/PF_Level0_Door_A.prefab");
             if (prefab != null)
             {
                 go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
                 go.transform.position = new Vector3(0f, 1.45f, 3f);
-                Debug.Log("Instantiated Backrooms_Door from prefab. Adjust position in scene if needed.");
+                Debug.Log("Instantiated PF_Level0_Door_A. Adjust position in scene if needed.");
             }
             else
             {
-                Debug.LogWarning("Door prefab not found and no Backrooms_Door in scene.");
+                Debug.LogWarning("PF_Level0_Door_A prefab not found.");
                 return;
             }
         }
@@ -190,7 +195,8 @@ public static class SceneSetupTool
         var door = EnsureComponent<LockedDoor>(go);
         var so = new SerializedObject(door);
 
-        var pivot = go.transform.Find("DoorSlab");
+        // PF_Level0_Door_A has child "Door_A_Door" which is the actual door panel
+        var pivot = go.transform.Find("Door_A_Door");
         if (pivot == null)
             pivot = go.transform;
 
