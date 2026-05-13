@@ -141,22 +141,14 @@ public static class SceneSetupTool
 
     private static void SetupKeycard()
     {
-        var go = GameObject.Find("Backrooms_Keycard");
+        // PF_Key0 is the real FBX-based keycard model placed in the scene
+        var go = GameObject.Find("PF_Key0");
+        if (go == null)
+            go = GameObject.Find("Backrooms_Keycard");
         if (go == null)
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
-                "Assets/_Project/Prefabs/Backrooms/Level0/Gameplay/PF_Level0_Keycard.prefab");
-            if (prefab != null)
-            {
-                go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
-                go.transform.position = new Vector3(-6f, 1f, -6f);
-                Debug.Log("Instantiated PF_Level0_Keycard. Adjust position in scene if needed.");
-            }
-            else
-            {
-                Debug.LogWarning("PF_Level0_Keycard prefab not found.");
-                return;
-            }
+            Debug.LogWarning("No PF_Key0 found in scene. Drag PF_Key0.fbx into the scene first.");
+            return;
         }
 
         EnsureComponent<KeycardPickup>(go);
