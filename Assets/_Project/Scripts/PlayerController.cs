@@ -4,13 +4,24 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour
 {
     [SerializeField] private float walkSpeed = 4f;
+    [SerializeField] private float sprintMultiplier = 1.5f;
     [SerializeField] private float mouseSensitivity = 2f;
-    [SerializeField] private float gravity = -9.81f;
+    [SerializeField] private float gravity = -15f;
+    [SerializeField] private float jumpForce = 4f;
     [SerializeField] private Transform cameraTransform;
+
+    [Header("Crouch")]
+    [SerializeField] private float crouchHeight = 1.0f;
+    [SerializeField] private float crouchSpeed = 2f;
 
     private CharacterController characterController;
     private Vector3 velocity;
     private float pitch;
+    private float lastJumpPressTime = float.MinValue;
+    private float standingHeight;
+    private float standingCenterY;
+    private float initialCamLocalY;
+    private bool isCrouching;
 
     private void Awake()
     {
@@ -19,6 +30,11 @@ public class PlayerController : MonoBehaviour
 
     private void Start()
     {
+        standingHeight = characterController.height;
+        standingCenterY = characterController.center.y;
+        if (cameraTransform != null)
+            initialCamLocalY = cameraTransform.localPosition.y;
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
@@ -27,6 +43,7 @@ public class PlayerController : MonoBehaviour
     {
         HandleMouseLook();
         HandleMovement();
+        HandleCrouch();
     }
 
     private void HandleMouseLook()
@@ -44,13 +61,47 @@ public class PlayerController : MonoBehaviour
         float moveX = Input.GetAxis("Horizontal");
         float moveZ = Input.GetAxis("Vertical");
 
-        Vector3 move = transform.right * moveX + transform.forward * moveZ;
-        characterController.Move(move * (walkSpeed * Time.deltaTime));
+        float speed = isCrouching ? crouchSpeed : walkSpeed;
+        if (Input.GetKey(KeyCode.LeftShift) && !isCrouching)
+            speed *= sprintMultiplier;
 
-        if (characterController.isGrounded && velocity.y < 0f)
-            velocity.y = -2f;
+        Vector3 move = transform.right * moveX + transform.forward * moveZ;
+        characterController.Move(move * (speed * Time.deltaTime));
+
+        if (Input.GetKeyDown(KeyCode.Space))
+            lastJumpPressTime = Time.time;
+
+        if (characterController.isGrounded)
+        {
+            if (velocity.y < 0f)
+                velocity.y = -2f;
+
+            if (Time.time - lastJumpPressTime < 0.15f)
+            {
+                velocity.y = jumpForce;
+                lastJumpPressTime = float.MinValue;
+            }
+        }
 
         velocity.y += gravity * Time.deltaTime;
         characterController.Move(velocity * Time.deltaTime);
+    }
+
+    private void HandleCrouch()
+    {
+        float targetHeight = Input.GetKey(KeyCode.C) ? crouchHeight : standingHeight;
+        float smoothHeight = Mathf.Lerp(characterController.height, targetHeight, Time.deltaTime * 10f);
+        isCrouching = smoothHeight < standingHeight - 0.05f;
+        characterController.height = smoothHeight;
+
+        float ratio = smoothHeight / standingHeight;
+        characterController.center = new Vector3(0, standingCenterY * ratio, 0);
+
+        if (cameraTransform != null)
+        {
+            Vector3 cp = cameraTransform.localPosition;
+            cp.y = initialCamLocalY - (standingHeight - smoothHeight);
+            cameraTransform.localPosition = cp;
+        }
     }
 }

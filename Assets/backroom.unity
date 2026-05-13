@@ -1929,8 +1929,10 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier:
   walkSpeed: 4
+  sprintMultiplier: 1.5
   mouseSensitivity: 2
-  gravity: -9.81
+  gravity: -15
+  jumpForce: 3.5
   cameraTransform: {fileID: 4100000008}
 --- !u!114 &4100000005
 MonoBehaviour:
