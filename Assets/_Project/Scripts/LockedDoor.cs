@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[RequireComponent(typeof(AudioSource))]
 public class LockedDoor : MonoBehaviour, IInteractable
 {
     [SerializeField] private Transform doorPivot;
@@ -11,6 +12,13 @@ public class LockedDoor : MonoBehaviour, IInteractable
     private float targetAngle;
     private float currentAngle;
     private PlayerInventory cachedPlayerInventory;
+    private AudioSource audioSource;
+
+    private void Awake()
+    {
+        audioSource = GetComponent<AudioSource>();
+        audioSource.playOnAwake = false;
+    }
 
     private void Update()
     {
@@ -34,6 +42,8 @@ public class LockedDoor : MonoBehaviour, IInteractable
         var inventory = interactor.GetComponent<PlayerInventory>();
         if (inventory == null || !inventory.HasKeycard)
             return;
+
+        audioSource.Play();
 
         isOpen = true;
         targetAngle = openAngle;

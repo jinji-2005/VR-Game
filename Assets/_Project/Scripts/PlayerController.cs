@@ -14,6 +14,9 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float crouchHeight = 1.0f;
     [SerializeField] private float crouchSpeed = 2f;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource runningAudioSource;
+
     private CharacterController characterController;
     private Vector3 velocity;
     private float pitch;
@@ -22,6 +25,9 @@ public class PlayerController : MonoBehaviour
     private float standingCenterY;
     private float initialCamLocalY;
     private bool isCrouching;
+
+    private float lastGroundedTime;
+    [SerializeField] private float groundedGraceTime = 0.15f;
 
     private void Awake()
     {
@@ -58,15 +64,58 @@ public class PlayerController : MonoBehaviour
 
     private void HandleMovement()
     {
+        if (characterController.isGrounded)
+        {
+            lastGroundedTime = Time.time;
+
+            if (velocity.y < 0f)
+                velocity.y = -2f;
+
+            if (Time.time - lastJumpPressTime < 0.15f)
+            {
+                velocity.y = jumpForce;
+                lastJumpPressTime = float.MinValue;
+            }
+        }
+
         float moveX = Input.GetAxis("Horizontal");
         float moveZ = Input.GetAxis("Vertical");
 
         float speed = isCrouching ? crouchSpeed : walkSpeed;
-        if (Input.GetKey(KeyCode.LeftShift) && !isCrouching)
+        bool isSprinting = Input.GetKey(KeyCode.LeftShift) && !isCrouching;
+        if (isSprinting)
             speed *= sprintMultiplier;
 
         Vector3 move = transform.right * moveX + transform.forward * moveZ;
         characterController.Move(move * (speed * Time.deltaTime));
+
+        // running sound: hold Shift + moving + grounded → loop
+        if (runningAudioSource != null)
+        {
+            bool isMoving = move.magnitude > 0.2f;
+            bool isRecentlyGrounded =
+                Time.time - lastGroundedTime < groundedGraceTime;
+
+            bool shouldRunSound =
+                isSprinting &&
+                isMoving &&
+                isRecentlyGrounded &&
+                velocity.y <= 0.1f;
+
+            if (!runningAudioSource.isPlaying)
+            {
+                runningAudioSource.loop = true;
+                runningAudioSource.Play();
+            }
+
+            float targetVolume = shouldRunSound ? 1f : 0f;
+
+            runningAudioSource.volume = Mathf.Lerp(
+                runningAudioSource.volume,
+                targetVolume,
+                Time.deltaTime * 12f
+            );
+        }
 
         if (Input.GetKeyDown(KeyCode.Space))
             lastJumpPressTime = Time.time;
