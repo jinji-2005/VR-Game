@@ -62,8 +62,8 @@ public class LockedDoor : MonoBehaviour, IInteractable
             return string.Empty;
 
         if (cachedPlayerInventory == null || !cachedPlayerInventory.HasKeycard)
-            return "Need keycard to open";
+            return "Need key to open";
 
-        return "Press E to open door";
+        return "Open";
     }
 }

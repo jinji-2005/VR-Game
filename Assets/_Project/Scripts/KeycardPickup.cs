@@ -19,6 +19,6 @@ public class KeycardPickup : MonoBehaviour, IInteractable
 
     public string GetInteractionPrompt()
     {
-        return "Press E to pick up keycard";
+        return "Pick up key";
     }
 }

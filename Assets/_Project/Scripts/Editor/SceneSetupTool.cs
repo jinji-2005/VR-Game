@@ -1,7 +1,9 @@
+using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public static class SceneSetupTool
 {
@@ -108,33 +110,68 @@ public static class SceneSetupTool
             promptGo = CreatePromptUI();
         }
 
-        EnsureComponent<InteractionPrompt>(promptGo);
+        var prompt = EnsureComponent<InteractionPrompt>(promptGo);
+        var so = new SerializedObject(prompt);
+
+        var hintPanel = promptGo.transform.Find("HintPanel");
+        if (hintPanel != null)
+            so.FindProperty("hintPanel").objectReferenceValue = hintPanel.gameObject;
+
+        var hintText = hintPanel?.Find("HintText")?.GetComponent<TextMeshProUGUI>();
+        if (hintText != null)
+            so.FindProperty("hintText").objectReferenceValue = hintText;
+
+        so.ApplyModifiedProperties();
 
         Debug.Log("Canvas setup complete.");
     }
 
     private static GameObject CreatePromptUI()
     {
-        var canvasGo = new GameObject("InteractionCanvas", typeof(Canvas), typeof(UnityEngine.UI.CanvasScaler), typeof(UnityEngine.UI.GraphicRaycaster));
+        var canvasGo = new GameObject("InteractionCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
         canvasGo.layer = LayerMask.NameToLayer("UI");
         var canvas = canvasGo.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
 
-        var scaler = canvasGo.GetComponent<UnityEngine.UI.CanvasScaler>();
-        scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        var scaler = canvasGo.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(800, 600);
 
         var promptGo = new GameObject("PromptText", typeof(RectTransform));
         promptGo.layer = LayerMask.NameToLayer("UI");
         promptGo.transform.SetParent(canvasGo.transform, false);
-
         var rt = promptGo.GetComponent<RectTransform>();
         rt.anchorMin = new Vector2(0.5f, 0.5f);
         rt.anchorMax = new Vector2(0.5f, 0.5f);
         rt.anchoredPosition = new Vector2(0, -120);
-        rt.sizeDelta = new Vector2(400, 50);
+        rt.sizeDelta = Vector2.zero;
 
-        Debug.Log("Created InteractionCanvas + PromptText.");
+        // HintPanel — background that wraps text tightly
+        var hintPanelGo = new GameObject("HintPanel", typeof(RectTransform), typeof(Image), typeof(HorizontalLayoutGroup), typeof(ContentSizeFitter));
+        hintPanelGo.layer = LayerMask.NameToLayer("UI");
+        hintPanelGo.transform.SetParent(promptGo.transform, false);
+        var hintPanelRt = hintPanelGo.GetComponent<RectTransform>();
+        hintPanelRt.anchorMin = new Vector2(0.5f, 0.5f);
+        hintPanelRt.anchorMax = new Vector2(0.5f, 0.5f);
+        hintPanelRt.anchoredPosition = Vector2.zero;
+        hintPanelGo.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.6f);
+        var layout = hintPanelGo.GetComponent<HorizontalLayoutGroup>();
+        layout.padding = new RectOffset(12, 12, 6, 6);
+        layout.childAlignment = TextAnchor.MiddleCenter;
+        var fitter = hintPanelGo.GetComponent<ContentSizeFitter>();
+        fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        // Hint text
+        var hintTextGo = new GameObject("HintText", typeof(RectTransform), typeof(TextMeshProUGUI));
+        hintTextGo.layer = LayerMask.NameToLayer("UI");
+        hintTextGo.transform.SetParent(hintPanelGo.transform, false);
+        var tmp = hintTextGo.GetComponent<TextMeshProUGUI>();
+        tmp.alignment = TextAlignmentOptions.Center;
+        tmp.fontSize = 24;
+        tmp.color = Color.white;
+
+        Debug.Log("Created InteractionCanvas + PromptText + HintPanel + HintText.");
 
         return promptGo;
     }
