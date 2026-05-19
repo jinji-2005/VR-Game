@@ -2232,7 +2232,7 @@ Transform:
   m_GameObject: {fileID: 1618033988}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: 6}
+  m_LocalPosition: {x: -14.48, y: -0.099, z: -9.197}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3552,7 +3552,7 @@ MonoBehaviour:
   openAngle: 90
   openSpeed: 2
   doorBlocker: {fileID: 3100000004}
-  lockedSound: {fileID: 0}
+  lockedSound: {fileID: 8300000, guid: 3aaeb45b3a1162440a9941de6960a3b4, type: 3}
   lockedJiggleAngle: 6
   lockedJiggleDuration: 0.25
 --- !u!82 &3100000011
