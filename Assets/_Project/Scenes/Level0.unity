@@ -216,7 +216,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 100
@@ -1344,6 +1344,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hintPanel: {fileID: 1107424512}
+  hintText: {fileID: 1923032460}
   Crosshair: {fileID: 0}
   normalColor: {r: 1, g: 1, b: 1, a: 0.35}
   activeColor: {r: 0.3, g: 1, b: 0.6, a: 0.8}
@@ -1414,7 +1415,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -3674,6 +3675,6 @@ SceneRoots:
   - {fileID: 1847150087}
   - {fileID: 1618033989}
   - {fileID: 2718281829}
+  - {fileID: 66168823}
   - {fileID: 1744791555}
   - {fileID: 1577211188}
-  - {fileID: 66168823}
