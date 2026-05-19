@@ -10,6 +10,12 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float jumpForce = 4f;
     [SerializeField] private Transform cameraTransform;
 
+    [Header("Collision")]
+    [SerializeField] private float controllerRadius = 0.32f;
+    [SerializeField] private float cameraNearClipPlane = 0.05f;
+    [SerializeField] private bool limitCameraPlanarOffset = true;
+    [SerializeField] private float cameraPlanarPadding = 0.08f;
+
     [Header("Crouch")]
     [SerializeField] private float crouchHeight = 1.0f;
     [SerializeField] private float crouchSpeed = 2f;
@@ -32,6 +38,7 @@ public class PlayerController : MonoBehaviour
     private void Awake()
     {
         characterController = GetComponent<CharacterController>();
+        ApplyCollisionSettings();
     }
 
     private void Start()
@@ -50,10 +57,14 @@ public class PlayerController : MonoBehaviour
         HandleMouseLook();
         HandleMovement();
         HandleCrouch();
+        LimitCameraPlanarOffset();
     }
 
     private void HandleMouseLook()
     {
+        if (cameraTransform == null)
+            return;
+
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
         float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
 
@@ -152,5 +163,29 @@ public class PlayerController : MonoBehaviour
             cp.y = initialCamLocalY - (standingHeight - smoothHeight);
             cameraTransform.localPosition = cp;
         }
+    }
+
+    private void ApplyCollisionSettings()
+    {
+        characterController.radius = Mathf.Max(0.1f, controllerRadius);
+
+        if (cameraTransform != null && cameraTransform.TryGetComponent(out Camera playerCamera))
+            playerCamera.nearClipPlane = cameraNearClipPlane;
+    }
+
+    private void LimitCameraPlanarOffset()
+    {
+        if (!limitCameraPlanarOffset || cameraTransform == null)
+            return;
+
+        float maxPlanarOffset = Mathf.Max(0f, characterController.radius - cameraPlanarPadding);
+        Vector3 localPosition = cameraTransform.localPosition;
+        Vector2 planarOffset = new Vector2(localPosition.x, localPosition.z);
+
+        if (planarOffset.sqrMagnitude <= maxPlanarOffset * maxPlanarOffset)
+            return;
+
+        Vector2 clampedOffset = planarOffset.normalized * maxPlanarOffset;
+        cameraTransform.localPosition = new Vector3(clampedOffset.x, localPosition.y, clampedOffset.y);
     }
 }

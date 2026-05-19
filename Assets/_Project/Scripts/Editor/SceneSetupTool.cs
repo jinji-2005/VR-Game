@@ -7,6 +7,8 @@ using UnityEngine.UI;
 
 public static class SceneSetupTool
 {
+    private const string InteractableLayerName = "Interactable";
+
     [MenuItem("Tools/Setup Control Guide")]
     public static void SetupControlGuide()
     {
@@ -157,8 +159,11 @@ public static class SceneSetupTool
         if (prompt != null)
         {
             intSo.FindProperty("prompt").objectReferenceValue = prompt;
-            intSo.ApplyModifiedProperties();
         }
+
+        SetLayerMaskProperty(intSo, "interactionMask", ~0);
+        SetLayerMaskProperty(intSo, "blockingMask", ~0);
+        intSo.ApplyModifiedProperties();
 
         Debug.Log("Player setup complete.");
     }
@@ -253,9 +258,7 @@ public static class SceneSetupTool
     private static void SetupKeycard()
     {
         // PF_Key0 is the real FBX-based keycard model placed in the scene
-        var go = GameObject.Find("PF_Key0");
-        if (go == null)
-            go = GameObject.Find("Backrooms_Keycard");
+        var go = FindFirstObjectByName("PF_Key0", "PF Key", "pf key", "PF_Key", "Backrooms_Keycard");
         if (go == null)
         {
             Debug.LogWarning("No PF_Key0 found in scene. Drag PF_Key0.fbx into the scene first.");
@@ -263,6 +266,7 @@ public static class SceneSetupTool
         }
 
         EnsureComponent<KeycardPickup>(go);
+        SetInteractableLayer(go);
 
         if (go.GetComponent<Collider>() == null)
             go.AddComponent<BoxCollider>();
@@ -300,11 +304,13 @@ public static class SceneSetupTool
 
         if (go.GetComponent<LockedDoor>() != null)
         {
+            SetInteractableLayer(go);
             Debug.Log($"Door '{go.name}' already has LockedDoor, skipping.");
             return;
         }
 
         var door = EnsureComponent<LockedDoor>(go);
+        SetInteractableLayer(go);
         var so = new SerializedObject(door);
 
         // For TstLvl_Door_C_Door, the door panel IS the pivot
@@ -334,6 +340,50 @@ public static class SceneSetupTool
         Debug.Log($"Door setup complete on '{go.name}'.");
     }
 
+    private static int GetLayerMask(string layerName)
+    {
+        int layer = LayerMask.NameToLayer(layerName);
+        if (layer < 0)
+        {
+            Debug.LogWarning($"Layer '{layerName}' is missing. Falling back to all layers.");
+            return ~0;
+        }
+
+        return 1 << layer;
+    }
+
+    private static void SetLayerMaskProperty(SerializedObject serializedObject, string propertyName, int bits)
+    {
+        var property = serializedObject.FindProperty(propertyName);
+        var maskBits = property?.FindPropertyRelative("m_Bits");
+        if (maskBits != null)
+            maskBits.intValue = bits;
+    }
+
+    private static void SetInteractableLayer(GameObject go)
+    {
+        int layer = LayerMask.NameToLayer(InteractableLayerName);
+        if (layer < 0)
+        {
+            Debug.LogWarning($"Layer '{InteractableLayerName}' is missing. Add it in Project Settings > Tags and Layers.");
+            return;
+        }
+
+        go.layer = layer;
+    }
+
+    private static GameObject FindFirstObjectByName(params string[] names)
+    {
+        foreach (string name in names)
+        {
+            var go = GameObject.Find(name);
+            if (go != null)
+                return go;
+        }
+
+        return null;
+    }
+
     private static void SetupTransitionTrigger()
     {
         var go = GameObject.Find("LevelTransition");
@@ -348,6 +398,7 @@ public static class SceneSetupTool
         }
 
         EnsureComponent<LevelTransitionTrigger>(go);
+        SetInteractableLayer(go);
 
         Debug.Log("Transition trigger setup complete.");
     }
