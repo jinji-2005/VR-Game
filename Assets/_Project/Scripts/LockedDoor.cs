@@ -64,6 +64,6 @@ public class LockedDoor : MonoBehaviour, IInteractable
         if (cachedPlayerInventory == null || !cachedPlayerInventory.HasKeycard)
             return "Need key to open";
 
-        return "Open";
+        return "<b><color=#FFD700>[E]</color></b> Open";
     }
 }

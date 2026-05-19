@@ -6,7 +6,6 @@ public class InteractionPrompt : MonoBehaviour
 {
     [Header("UI References")]
     [SerializeField] private GameObject hintPanel;
-    [SerializeField] private TextMeshProUGUI hintText;
     [SerializeField] private Image Crosshair;
 
     [Header("Crosshair Colors")]
@@ -28,12 +27,6 @@ public class InteractionPrompt : MonoBehaviour
 
         if (hintPanel != null)
             hintPanel.SetActive(true);
-
-        if (hintText != null)
-        {
-            hintText.text =
-                $"<b><color=#FFD700>[E]</color></b> {message}";
-        }
 
         if (Crosshair != null)
         {

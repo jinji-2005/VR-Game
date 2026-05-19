@@ -7,6 +7,80 @@ using UnityEngine.UI;
 
 public static class SceneSetupTool
 {
+    [MenuItem("Tools/Setup Control Guide")]
+    public static void SetupControlGuide()
+    {
+        if (Application.isPlaying)
+        {
+            Debug.LogError("Stop Play mode first, then run Setup Control Guide.");
+            return;
+        }
+
+        var existing = Object.FindFirstObjectByType<ControlGuideDisplay>();
+        if (existing != null)
+        {
+            Debug.Log("ControlGuideDisplay already exists in scene, skipping.");
+            return;
+        }
+
+        var canvasGo = CreateControlGuideUI();
+        var display = canvasGo.AddComponent<ControlGuideDisplay>();
+
+        var so = new SerializedObject(display);
+        var panel = canvasGo.transform.Find("ControlGuidePanel");
+        if (panel != null)
+            so.FindProperty("guidePanel").objectReferenceValue = panel.gameObject;
+        var text = panel?.Find("ControlGuideText")?.GetComponent<TextMeshProUGUI>();
+        if (text != null)
+            so.FindProperty("guideText").objectReferenceValue = text;
+        so.ApplyModifiedProperties();
+
+        EditorSceneManager.SaveScene(SceneManager.GetActiveScene());
+        Debug.Log("ControlGuideDisplay created. Adjust position/text in the Inspector.");
+    }
+
+    private static GameObject CreateControlGuideUI()
+    {
+        var canvasGo = new GameObject("ControlGuideCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+        canvasGo.layer = LayerMask.NameToLayer("UI");
+        var canvas = canvasGo.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 100;
+
+        var scaler = canvasGo.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920, 1080);
+
+        // Panel with CanvasGroup for fade
+        var panelGo = new GameObject("ControlGuidePanel", typeof(RectTransform), typeof(Image), typeof(CanvasGroup));
+        panelGo.layer = LayerMask.NameToLayer("UI");
+        panelGo.transform.SetParent(canvasGo.transform, false);
+        var panelRt = panelGo.GetComponent<RectTransform>();
+        panelRt.anchorMin = new Vector2(0.5f, 1f);
+        panelRt.anchorMax = new Vector2(0.5f, 1f);
+        panelRt.anchoredPosition = new Vector2(0, -80);
+        panelRt.sizeDelta = new Vector2(500, 200);
+        panelGo.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.7f);
+
+        // Text
+        var textGo = new GameObject("ControlGuideText", typeof(RectTransform), typeof(TextMeshProUGUI));
+        textGo.layer = LayerMask.NameToLayer("UI");
+        textGo.transform.SetParent(panelGo.transform, false);
+        var textRt = textGo.GetComponent<RectTransform>();
+        textRt.anchorMin = Vector2.zero;
+        textRt.anchorMax = Vector2.one;
+        textRt.offsetMin = Vector2.zero;
+        textRt.offsetMax = Vector2.zero;
+        var tmp = textGo.GetComponent<TextMeshProUGUI>();
+        tmp.alignment = TextAlignmentOptions.Center;
+        tmp.fontSize = 28;
+        tmp.color = Color.white;
+        tmp.text = "WASD - Move\nSpace - Jump\nHold Left Shift while moving - Run\nC - Crouch";
+
+        Debug.Log("Created ControlGuideCanvas with panel and text.");
+        return canvasGo;
+    }
+
     [MenuItem("Tools/Setup P1 Scene")]
     public static void SetupScene()
     {

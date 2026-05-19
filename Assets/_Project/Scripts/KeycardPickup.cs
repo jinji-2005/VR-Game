@@ -19,6 +19,6 @@ public class KeycardPickup : MonoBehaviour, IInteractable
 
     public string GetInteractionPrompt()
     {
-        return "Pick up key";
+        return "<b><color=#FFD700>[E]</color></b> Pick up key";
     }
 }

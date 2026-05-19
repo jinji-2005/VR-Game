@@ -316,6 +316,74 @@ PrefabInstance:
       propertyPath: m_Name
       value: Traffic Light - Simple
       objectReference: {fileID: 0}
+    - target: {fileID: 2382799219754379413, guid: 6694ca6f4dd2de04c86258600403924f, type: 3}
+      propertyPath: m_Type
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2382799219754379413, guid: 6694ca6f4dd2de04c86258600403924f, type: 3}
+      propertyPath: m_Range
+      value: 1000
+      objectReference: {fileID: 0}
+    - target: {fileID: 2382799219754379413, guid: 6694ca6f4dd2de04c86258600403924f, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2382799219754379413, guid: 6694ca6f4dd2de04c86258600403924f, type: 3}
+      propertyPath: m_Intensity
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2382799219754379413, guid: 6694ca6f4dd2de04c86258600403924f, type: 3}
+      propertyPath: m_SpotAngle
+      value: 179
+      objectReference: {fileID: 0}
+    - target: {fileID: 2382799219754379413, guid: 6694ca6f4dd2de04c86258600403924f, type: 3}
+      propertyPath: m_Shadows.m_Type
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2382799219754379413, guid: 6694ca6f4dd2de04c86258600403924f, type: 3}
+      propertyPath: m_CullingMask.m_Bits
+      value: 4294967295
+      objectReference: {fileID: 0}
+    - target: {fileID: 9222065738425870839, guid: 6694ca6f4dd2de04c86258600403924f, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -23.02
+      objectReference: {fileID: 0}
+    - target: {fileID: 9222065738425870839, guid: 6694ca6f4dd2de04c86258600403924f, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 48.19
+      objectReference: {fileID: 0}
+    - target: {fileID: 9222065738425870839, guid: 6694ca6f4dd2de04c86258600403924f, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -19.44
+      objectReference: {fileID: 0}
+    - target: {fileID: 9222065738425870839, guid: 6694ca6f4dd2de04c86258600403924f, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 9222065738425870839, guid: 6694ca6f4dd2de04c86258600403924f, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 9222065738425870839, guid: 6694ca6f4dd2de04c86258600403924f, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9222065738425870839, guid: 6694ca6f4dd2de04c86258600403924f, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9222065738425870839, guid: 6694ca6f4dd2de04c86258600403924f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 90
+      objectReference: {fileID: 0}
+    - target: {fileID: 9222065738425870839, guid: 6694ca6f4dd2de04c86258600403924f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9222065738425870839, guid: 6694ca6f4dd2de04c86258600403924f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects:
     - {fileID: 65702495048144492, guid: 6694ca6f4dd2de04c86258600403924f, type: 3}
