@@ -35,6 +35,8 @@ public class PlayerController : MonoBehaviour
     private float lastGroundedTime;
     [SerializeField] private float groundedGraceTime = 0.15f;
 
+    public bool IsProducingRunNoise { get; private set; }
+
     private void Awake()
     {
         characterController = GetComponent<CharacterController>();
@@ -113,6 +115,8 @@ public class PlayerController : MonoBehaviour
                 isRecentlyGrounded &&
                 velocity.y <= 0.1f;
 
+            IsProducingRunNoise = shouldRunSound;
+
             if (!runningAudioSource.isPlaying)
             {
                 runningAudioSource.loop = true;
@@ -126,6 +130,10 @@ public class PlayerController : MonoBehaviour
                 targetVolume,
                 Time.deltaTime * 12f
             );
+        }
+        else
+        {
+            IsProducingRunNoise = false;
         }
 
         if (Input.GetKeyDown(KeyCode.Space))
