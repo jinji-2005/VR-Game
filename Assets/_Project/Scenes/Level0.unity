@@ -152,7 +152,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0f276bed3874f4062984661845fb7a1d, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: -2.96
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0f276bed3874f4062984661845fb7a1d, type: 3}
       propertyPath: m_LocalPosition.y
@@ -160,7 +160,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0f276bed3874f4062984661845fb7a1d, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: -0.096
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0f276bed3874f4062984661845fb7a1d, type: 3}
       propertyPath: m_LocalRotation.w
@@ -397,14 +397,39 @@ MonoBehaviour:
     m_Bits: 4294967295
   collisionProbeRadius: 0.3
   collisionProbeDistance: 0.8
+  autoMeasureTraversalProfile: 1
+  traversalBodyHeight: 2
+  traversalBodyRadius: 0.55
+  traversalCapsulePadding: 0.05
+  traversalRadiusPadding: 0.08
+  traversalHeadPadding: 0.18
+  traversalHeadNames:
+  - CableHead
+  - Head
+  - Neck2
+  traversalWidthAnchorNames:
+  - CableShoulder
+  - CableTorso1
+  - CableTorso2
+  - CableHead
+  - Head
+  - Legs
+  - CableLeftLeg
+  - CableRightLeg1
+  - CableRightLeg2
   dimNearbyLights: 1
   nearbyLightDimRadius: 7
   nearbyLightIntensityMultiplier: 0.35
   chaseMemoryDuration: 4.5
   lostSearchDuration: 3
+  lostSightPatrolDelay: 2
+  returnToOriginTimeout: 10
   avoidanceCommitTime: 0.45
   stuckTimeout: 0.6
   minimumPatrolTargetDistance: 1
+  patrolEscapeDistance: 1.1
+  patrolEscapeDuration: 0.45
+  patrolEscapeSpeedMultiplier: 0.9
   currentState: 0
   playerTarget: {fileID: 0}
   disableImportedPlaneMeshes: 1
@@ -891,14 +916,39 @@ MonoBehaviour:
     m_Bits: 4294967295
   collisionProbeRadius: 0.3
   collisionProbeDistance: 0.8
+  autoMeasureTraversalProfile: 1
+  traversalBodyHeight: 2
+  traversalBodyRadius: 0.55
+  traversalCapsulePadding: 0.05
+  traversalRadiusPadding: 0.08
+  traversalHeadPadding: 0.18
+  traversalHeadNames:
+  - CableHead
+  - Head
+  - Neck2
+  traversalWidthAnchorNames:
+  - CableShoulder
+  - CableTorso1
+  - CableTorso2
+  - CableHead
+  - Head
+  - Legs
+  - CableLeftLeg
+  - CableRightLeg1
+  - CableRightLeg2
   dimNearbyLights: 1
   nearbyLightDimRadius: 7
   nearbyLightIntensityMultiplier: 0.35
   chaseMemoryDuration: 4.5
   lostSearchDuration: 3
+  lostSightPatrolDelay: 2
+  returnToOriginTimeout: 10
   avoidanceCommitTime: 0.45
   stuckTimeout: 0.6
   minimumPatrolTargetDistance: 1
+  patrolEscapeDistance: 1.1
+  patrolEscapeDuration: 0.45
+  patrolEscapeSpeedMultiplier: 0.9
   currentState: 0
   playerTarget: {fileID: 0}
   disableImportedPlaneMeshes: 1
@@ -3404,7 +3454,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0f276bed3874f4062984661845fb7a1d, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 3.25
+      value: 3.023
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0f276bed3874f4062984661845fb7a1d, type: 3}
       propertyPath: m_LocalPosition.z

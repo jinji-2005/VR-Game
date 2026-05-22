@@ -36,6 +36,25 @@ public class BacteriaController : MonoBehaviour
     [SerializeField] private LayerMask obstacleMask = ~0;
     [SerializeField] private float collisionProbeRadius = 0.3f;
     [SerializeField] private float collisionProbeDistance = 0.8f;
+    [SerializeField] private bool autoMeasureTraversalProfile = true;
+    [SerializeField] private float traversalBodyHeight = 2f;
+    [SerializeField] private float traversalBodyRadius = 0.55f;
+    [SerializeField] private float traversalCapsulePadding = 0.05f;
+    [SerializeField] private float traversalRadiusPadding = 0.08f;
+    [SerializeField] private float traversalHeadPadding = 0.18f;
+    [SerializeField] private string[] traversalHeadNames = { "CableHead", "Head", "Neck2" };
+    [SerializeField] private string[] traversalWidthAnchorNames =
+    {
+        "CableShoulder",
+        "CableTorso1",
+        "CableTorso2",
+        "CableHead",
+        "Head",
+        "Legs",
+        "CableLeftLeg",
+        "CableRightLeg1",
+        "CableRightLeg2"
+    };
     [SerializeField] private bool dimNearbyLights = true;
     [SerializeField] private float nearbyLightDimRadius = 7f;
     [SerializeField] private float nearbyLightIntensityMultiplier = 0.35f;
@@ -43,11 +62,16 @@ public class BacteriaController : MonoBehaviour
     [Header("Chase Memory")]
     [SerializeField] private float chaseMemoryDuration = 4.5f;
     [SerializeField] private float lostSearchDuration = 3f;
+    [SerializeField] private float lostSightPatrolDelay = 2f;
+    [SerializeField] private float returnToOriginTimeout = 10f;
 
     [Header("Patrol Recovery")]
     [SerializeField] private float avoidanceCommitTime = 0.45f;
     [SerializeField] private float stuckTimeout = 0.6f;
     [SerializeField] private float minimumPatrolTargetDistance = 1f;
+    [SerializeField] private float patrolEscapeDistance = 1.1f;
+    [SerializeField] private float patrolEscapeDuration = 0.45f;
+    [SerializeField] private float patrolEscapeSpeedMultiplier = 0.9f;
 
     [Header("State")]
     public State currentState = State.Idle;
@@ -65,14 +89,21 @@ public class BacteriaController : MonoBehaviour
     private PlayerController playerController;
     private Light[] sceneLights;
     private float chaseMemoryTimer;
+    private float lostSightTimer;
     private Vector3 lastKnownPlayerPosition;
     private bool hasLastKnownPlayerPosition;
     private Vector3 currentPatrolTarget;
     private bool hasPatrolTarget;
+    private bool isPatrolEscaping;
+    private float patrolEscapeTimer;
+    private Vector3 patrolEscapeTarget;
     private Vector3 avoidanceLockDirection;
     private float avoidanceLockTimer;
     private float stuckTimer;
     private float patrolAngleOffset;
+    private float traversalBottomOffset;
+    private float traversalTopOffset;
+    private float traversalRadius;
 
     public float CurrentMoveSpeed => currentMoveSpeed;
     public float MaxConfiguredSpeed => Mathf.Max(patrolSpeed, chaseSpeed, investigateSpeed, 0.01f);
@@ -85,6 +116,7 @@ public class BacteriaController : MonoBehaviour
             obstacleMask = Physics.DefaultRaycastLayers;
 
         DisableImportedHelpers();
+        CalibrateTraversalProfile();
         DimNearbySceneLights();
         CachePlayerReference(forceSearch: true);
     }
@@ -154,6 +186,7 @@ public class BacteriaController : MonoBehaviour
     {
         currentState = newState;
         ResetMovementRecovery();
+        ResetPatrolEscape();
 
         switch (newState)
         {
@@ -168,10 +201,11 @@ public class BacteriaController : MonoBehaviour
                 SelectNextPatrolTarget();
                 break;
             case State.Chase:
+                lostSightTimer = lostSightPatrolDelay;
                 RememberPlayerPosition(GetPlayerPositionOrFallback(transform.position));
                 break;
             case State.Lost:
-                lostTimer = lostSearchDuration;
+                lostTimer = returnToOriginTimeout;
                 break;
             case State.Investigate:
                 investigateTimer = 4f;
@@ -200,10 +234,30 @@ public class BacteriaController : MonoBehaviour
             return;
         }
 
+        if (isPatrolEscaping)
+        {
+            patrolEscapeTimer -= Time.deltaTime;
+            bool movedToEscapeTarget = MoveTowards(
+                patrolEscapeTarget,
+                patrolSpeed * patrolEscapeSpeedMultiplier,
+                0.2f,
+                patrolRadius);
+
+            if (movedToEscapeTarget && patrolEscapeTimer > 0f)
+                return;
+
+            ResetPatrolEscape();
+            SelectNextPatrolTarget();
+            return;
+        }
+
         if (!hasPatrolTarget)
             SelectNextPatrolTarget();
 
         if (MoveTowards(currentPatrolTarget, patrolSpeed, 0.5f, patrolRadius))
+            return;
+
+        if (!IsWithinPlanarDistance(currentPatrolTarget, 0.65f) && TryStartPatrolEscape())
             return;
 
         SelectNextPatrolTarget();
@@ -217,25 +271,31 @@ public class BacteriaController : MonoBehaviour
             return;
         }
 
-        bool canTrackPlayer = CanDetectPlayer(loseRange, requireSight: false);
-        if (!canTrackPlayer)
+        bool canSeePlayer = CanImmediatelyChasePlayer() || CanDetectPlayer(loseRange, requireSight: true);
+        if (canSeePlayer)
         {
+            lostSightTimer = lostSightPatrolDelay;
+        }
+        else
+        {
+            lostSightTimer -= Time.deltaTime;
             chaseMemoryTimer -= Time.deltaTime;
-            if (chaseMemoryTimer <= 0f || !hasLastKnownPlayerPosition)
+
+            if (lostSightTimer <= 0f || chaseMemoryTimer <= 0f || !hasLastKnownPlayerPosition)
             {
                 EnterState(State.Lost);
                 return;
             }
         }
 
-        Vector3 chaseTarget = canTrackPlayer ? playerTarget.transform.position : lastKnownPlayerPosition;
+        Vector3 chaseTarget = canSeePlayer ? playerTarget.transform.position : lastKnownPlayerPosition;
         float chaseStopDistance = Mathf.Max(0.35f, stoppingDistance * 0.7f);
         if (MoveTowards(chaseTarget, chaseSpeed, chaseStopDistance, GetAlertLeashRadius()))
             return;
 
         FaceTowards(chaseTarget);
 
-        if (!canTrackPlayer && IsWithinPlanarDistance(chaseTarget, chaseStopDistance + 0.15f))
+        if (!canSeePlayer && lostSightTimer <= 0f)
             EnterState(State.Lost);
     }
 
@@ -255,10 +315,16 @@ public class BacteriaController : MonoBehaviour
             return;
         }
 
-        Vector3 searchTarget = hasLastKnownPlayerPosition ? lastKnownPlayerPosition : patrolOrigin;
-        bool moved = MoveTowards(searchTarget, patrolSpeed * 0.8f, 0.25f, GetAlertLeashRadius());
+        float returnSpeed = Mathf.Max(investigateSpeed, patrolSpeed * 1.15f);
+        bool moved = MoveTowards(patrolOrigin, returnSpeed, 0.25f, GetAlertLeashRadius());
 
-        if (!moved && IsWithinPlanarDistance(searchTarget, 0.35f))
+        if (IsWithinPlanarDistance(patrolOrigin, 0.35f))
+        {
+            EnterState(State.Patrol);
+            return;
+        }
+
+        if (!moved && lostTimer <= 0f)
             EnterState(State.Patrol);
     }
 
@@ -380,6 +446,14 @@ public class BacteriaController : MonoBehaviour
         Vector3 nextPosition = previousPosition + moveDir * currentMoveSpeed * Time.deltaTime;
         nextPosition = ClampToPatrolBounds(nextPosition, leashRadius);
         nextPosition.y = patrolOrigin.y;
+
+        if (IsCapsuleOverlapping(nextPosition, GetTraversalRadius(collisionProbeRadius)))
+        {
+            currentMoveSpeed = 0f;
+            stuckTimer += Time.deltaTime;
+            return false;
+        }
+
         transform.position = nextPosition;
 
         float expectedStep = currentMoveSpeed * Time.deltaTime;
@@ -616,17 +690,198 @@ public class BacteriaController : MonoBehaviour
         if (direction.sqrMagnitude < 0.0001f)
             return true;
 
-        float probeDistance = Mathf.Max(collisionProbeDistance, currentMoveSpeed * Time.deltaTime + collisionProbeRadius);
-        Vector3 origin = transform.position + Vector3.up * eyeHeight;
+        float effectiveRadius = GetTraversalRadius(collisionProbeRadius);
+        float probeDistance = Mathf.Max(collisionProbeDistance, currentMoveSpeed * Time.deltaTime + effectiveRadius);
+        Vector3 projectedNext = transform.position + direction.normalized * probeDistance;
+        if (!IsWithinRadiusFromOrigin(projectedNext, leashRadius))
+            return true;
 
-        if (Physics.SphereCast(origin, collisionProbeRadius, direction, out RaycastHit hit, probeDistance, obstacleMask, QueryTriggerInteraction.Ignore))
+        return !HasTraversalClearance(transform.position, projectedNext, effectiveRadius);
+    }
+
+    private bool HasTraversalClearance(Vector3 startPosition, Vector3 targetPosition, float probeRadius)
+    {
+        Vector3 flatTarget = new Vector3(targetPosition.x, patrolOrigin.y, targetPosition.z);
+        Vector3 direction = flatTarget - startPosition;
+        direction.y = 0f;
+        float distance = direction.magnitude;
+        float radius = GetTraversalRadius(probeRadius);
+
+        if (distance > 0.001f)
         {
-            if (!hit.collider.CompareTag(playerTag))
+            if (Physics.CapsuleCast(
+                GetCapsuleBottom(startPosition, radius),
+                GetCapsuleTop(startPosition, radius),
+                radius,
+                direction / distance,
+                out RaycastHit hit,
+                distance,
+                obstacleMask,
+                QueryTriggerInteraction.Ignore))
+            {
+                if (!hit.collider.CompareTag(playerTag) && !hit.transform.IsChildOf(transform))
+                    return false;
+            }
+        }
+
+        return !IsCapsuleOverlapping(flatTarget, radius);
+    }
+
+    private void CalibrateTraversalProfile()
+    {
+        traversalBottomOffset = 0f;
+        traversalTopOffset = Mathf.Max(traversalBodyHeight, collisionProbeRadius * 2f + 0.05f);
+        traversalRadius = Mathf.Max(collisionProbeRadius, traversalBodyRadius);
+
+        if (!autoMeasureTraversalProfile)
+        {
+            Debug.Log(
+                $"[BacteriaController] Traversal profile bottom={traversalBottomOffset:F2}, top={traversalTopOffset:F2}, radius={traversalRadius:F2} on {name}",
+                this);
+            return;
+        }
+
+        Vector3 rootPosition = transform.position;
+        Transform[] allChildren = GetComponentsInChildren<Transform>(true);
+        bool foundHeadAnchor = false;
+        float highestHeadY = float.NegativeInfinity;
+        float widestAnchorRadius = 0f;
+
+        for (int i = 0; i < allChildren.Length; i++)
+        {
+            Transform child = allChildren[i];
+            if (child == null || child == transform)
+                continue;
+
+            if (MatchesAnyName(child.name, traversalHeadNames))
+            {
+                highestHeadY = Mathf.Max(highestHeadY, child.position.y);
+                foundHeadAnchor = true;
+            }
+
+            if (MatchesAnyName(child.name, traversalWidthAnchorNames))
+                widestAnchorRadius = Mathf.Max(widestAnchorRadius, MeasurePlanarDistance(rootPosition, child.position));
+        }
+
+        Renderer[] renderers = GetComponentsInChildren<Renderer>(true);
+        bool foundRenderer = false;
+        float minY = float.PositiveInfinity;
+        float maxY = float.NegativeInfinity;
+        float widestRendererRadius = 0f;
+
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Renderer rendererComponent = renderers[i];
+            if (rendererComponent == null || !rendererComponent.enabled)
+                continue;
+
+            Bounds bounds = rendererComponent.bounds;
+            minY = Mathf.Min(minY, bounds.min.y);
+            maxY = Mathf.Max(maxY, bounds.max.y);
+            widestRendererRadius = Mathf.Max(widestRendererRadius, MeasureRendererRadius(bounds, rootPosition));
+            foundRenderer = true;
+        }
+
+        float rootY = rootPosition.y;
+        if (foundRenderer)
+        {
+            traversalBottomOffset = Mathf.Max(0f, minY - rootY);
+            traversalTopOffset = Mathf.Max(
+                traversalTopOffset,
+                maxY - rootY + traversalCapsulePadding);
+        }
+
+        if (foundHeadAnchor)
+        {
+            traversalTopOffset = Mathf.Max(
+                traversalTopOffset,
+                highestHeadY - rootY + traversalHeadPadding);
+        }
+
+        traversalRadius = Mathf.Max(
+            traversalRadius,
+            widestAnchorRadius + traversalRadiusPadding,
+            widestRendererRadius + traversalRadiusPadding);
+
+        Debug.Log(
+            $"[BacteriaController] Traversal profile bottom={traversalBottomOffset:F2}, top={traversalTopOffset:F2}, radius={traversalRadius:F2}, headAnchor={foundHeadAnchor}, renderers={foundRenderer} on {name}",
+            this);
+    }
+
+    private bool IsCapsuleOverlapping(Vector3 worldPosition, float radius)
+    {
+        Collider[] overlaps = Physics.OverlapCapsule(
+            GetCapsuleBottom(worldPosition, radius),
+            GetCapsuleTop(worldPosition, radius),
+            radius,
+            obstacleMask,
+            QueryTriggerInteraction.Ignore);
+
+        for (int i = 0; i < overlaps.Length; i++)
+        {
+            Collider overlap = overlaps[i];
+            if (overlap == null)
+                continue;
+
+            if (overlap.CompareTag(playerTag) || overlap.transform.IsChildOf(transform))
+                continue;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private Vector3 GetCapsuleBottom(Vector3 worldPosition, float radius)
+    {
+        float safeRadius = GetTraversalRadius(radius);
+        return new Vector3(
+            worldPosition.x,
+            worldPosition.y + traversalBottomOffset + safeRadius + traversalCapsulePadding,
+            worldPosition.z);
+    }
+
+    private Vector3 GetCapsuleTop(Vector3 worldPosition, float radius)
+    {
+        float safeRadius = GetTraversalRadius(radius);
+        float effectiveHeight = Mathf.Max(traversalTopOffset, safeRadius * 2f + 0.05f);
+        return new Vector3(
+            worldPosition.x,
+            worldPosition.y + effectiveHeight - safeRadius - traversalCapsulePadding,
+            worldPosition.z);
+    }
+
+    private float GetTraversalRadius(float requestedRadius)
+    {
+        return Mathf.Max(0.05f, requestedRadius, traversalRadius);
+    }
+
+    private static bool MatchesAnyName(string candidateName, string[] desiredNames)
+    {
+        if (string.IsNullOrEmpty(candidateName) || desiredNames == null || desiredNames.Length == 0)
+            return false;
+
+        for (int i = 0; i < desiredNames.Length; i++)
+        {
+            if (string.Equals(candidateName, desiredNames[i], System.StringComparison.OrdinalIgnoreCase))
                 return true;
         }
 
-        Vector3 projectedNext = transform.position + direction.normalized * probeDistance;
-        return !IsWithinRadiusFromOrigin(projectedNext, leashRadius);
+        return false;
+    }
+
+    private static float MeasurePlanarDistance(Vector3 rootPosition, Vector3 worldPosition)
+    {
+        Vector3 offset = worldPosition - rootPosition;
+        offset.y = 0f;
+        return offset.magnitude;
+    }
+
+    private static float MeasureRendererRadius(Bounds bounds, Vector3 rootPosition)
+    {
+        Vector2 planarCenterOffset = new Vector2(bounds.center.x - rootPosition.x, bounds.center.z - rootPosition.z);
+        float planarExtent = Mathf.Sqrt(bounds.extents.x * bounds.extents.x + bounds.extents.z * bounds.extents.z);
+        return planarCenterOffset.magnitude + planarExtent;
     }
 
     private bool IsWithinRadiusFromOrigin(Vector3 worldPosition, float radius)
@@ -672,6 +927,85 @@ public class BacteriaController : MonoBehaviour
         return clamped;
     }
 
+    private bool TryStartPatrolEscape()
+    {
+        if (!TryFindPatrolEscapeTarget(out Vector3 escapeTarget))
+            return false;
+
+        patrolEscapeTarget = escapeTarget;
+        patrolEscapeTimer = patrolEscapeDuration;
+        isPatrolEscaping = true;
+        hasPatrolTarget = false;
+        ResetMovementRecovery();
+        return true;
+    }
+
+    private bool TryFindPatrolEscapeTarget(out Vector3 escapeTarget)
+    {
+        Vector3 towardCenter = patrolOrigin - transform.position;
+        towardCenter.y = 0f;
+        Vector3 inwardDirection = towardCenter.sqrMagnitude > 0.0001f
+            ? towardCenter.normalized
+            : -transform.forward;
+
+        Vector3 backward = -transform.forward;
+        backward.y = 0f;
+        if (backward.sqrMagnitude > 0.0001f)
+            backward.Normalize();
+
+        Vector3 right = transform.right;
+        right.y = 0f;
+        if (right.sqrMagnitude > 0.0001f)
+            right.Normalize();
+
+        Vector3[] candidateDirections =
+        {
+            BlendPlanarDirections(inwardDirection, 0.75f, backward, 0.25f),
+            inwardDirection,
+            backward,
+            BlendPlanarDirections(inwardDirection, 0.7f, -right, 0.3f),
+            BlendPlanarDirections(inwardDirection, 0.7f, right, 0.3f),
+            RotatePlanar(inwardDirection, 35f),
+            RotatePlanar(inwardDirection, -35f),
+            -right,
+            right
+        };
+
+        for (int i = 0; i < candidateDirections.Length; i++)
+        {
+            Vector3 direction = candidateDirections[i];
+            direction.y = 0f;
+            if (direction.sqrMagnitude < 0.0001f)
+                continue;
+
+            Vector3 candidate = ClampToPatrolBounds(
+                transform.position + direction.normalized * patrolEscapeDistance,
+                patrolRadius);
+
+            if (Vector3.Distance(transform.position, candidate) < 0.2f)
+                continue;
+
+            if (!HasClearPathTo(candidate, collisionProbeRadius * 0.75f))
+                continue;
+
+            escapeTarget = candidate;
+            return true;
+        }
+
+        escapeTarget = ClampToPatrolBounds(
+            transform.position + inwardDirection * patrolEscapeDistance,
+            patrolRadius);
+
+        return Vector3.Distance(transform.position, escapeTarget) >= 0.2f;
+    }
+
+    private static Vector3 BlendPlanarDirections(Vector3 primary, float primaryWeight, Vector3 secondary, float secondaryWeight)
+    {
+        Vector3 blended = primary * primaryWeight + secondary * secondaryWeight;
+        blended.y = 0f;
+        return blended.sqrMagnitude > 0.0001f ? blended.normalized : Vector3.zero;
+    }
+
     private void SelectNextPatrolTarget()
     {
         if (patrolPositions == null || patrolPositions.Length == 0)
@@ -702,7 +1036,14 @@ public class BacteriaController : MonoBehaviour
             return;
         }
 
-        currentPatrolTarget = ClampToPatrolBounds(transform.position - transform.right * 0.75f, patrolRadius);
+        Vector3 fallbackDirection = patrolOrigin - transform.position;
+        fallbackDirection.y = 0f;
+        if (fallbackDirection.sqrMagnitude < 0.0001f)
+            fallbackDirection = -transform.right;
+
+        currentPatrolTarget = ClampToPatrolBounds(
+            transform.position + fallbackDirection.normalized * Mathf.Max(0.9f, minimumPatrolTargetDistance),
+            patrolRadius);
         currentPatrolIndex = (currentPatrolIndex + 1) % patrolPositions.Length;
         patrolAngleOffset = Mathf.Repeat(patrolAngleOffset + angleStep, Mathf.PI * 2f);
         hasPatrolTarget = true;
@@ -720,18 +1061,7 @@ public class BacteriaController : MonoBehaviour
 
     private bool HasClearPathTo(Vector3 targetPosition, float probeRadius)
     {
-        Vector3 origin = transform.position + Vector3.up * eyeHeight;
-        Vector3 target = new Vector3(targetPosition.x, patrolOrigin.y + eyeHeight, targetPosition.z);
-        Vector3 direction = target - origin;
-        float distance = direction.magnitude;
-
-        if (distance <= 0.001f)
-            return true;
-
-        if (Physics.SphereCast(origin, probeRadius, direction.normalized, out RaycastHit hit, distance, obstacleMask, QueryTriggerInteraction.Ignore))
-            return hit.collider.CompareTag(playerTag);
-
-        return true;
+        return HasTraversalClearance(transform.position, targetPosition, probeRadius);
     }
 
     private void RememberPlayerPosition(Vector3 playerPosition)
@@ -751,6 +1081,13 @@ public class BacteriaController : MonoBehaviour
         avoidanceLockDirection = Vector3.zero;
         avoidanceLockTimer = 0f;
         stuckTimer = 0f;
+    }
+
+    private void ResetPatrolEscape()
+    {
+        isPatrolEscaping = false;
+        patrolEscapeTimer = 0f;
+        patrolEscapeTarget = transform.position;
     }
 
     private void FaceTowards(Vector3 targetPosition)

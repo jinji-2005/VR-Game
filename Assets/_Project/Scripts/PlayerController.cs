@@ -38,6 +38,7 @@ public class PlayerController : MonoBehaviour
     public bool IsProducingRunNoise { get; private set; }
     public bool IsProducingFootstepNoise { get; private set; }
     public float MovementNoiseStrength { get; private set; }
+    public bool IsCrouching => isCrouching;
 
     private void Awake()
     {
@@ -59,8 +60,8 @@ public class PlayerController : MonoBehaviour
     private void Update()
     {
         HandleMouseLook();
-        HandleMovement();
         HandleCrouch();
+        HandleMovement();
         LimitCameraPlanarOffset();
     }
 
@@ -108,6 +109,7 @@ public class PlayerController : MonoBehaviour
         bool isRecentlyGrounded =
             Time.time - lastGroundedTime < groundedGraceTime;
         bool isAudibleMovement =
+            !isCrouching &&
             isMoving &&
             isRecentlyGrounded &&
             velocity.y <= 0.1f;
@@ -178,9 +180,10 @@ public class PlayerController : MonoBehaviour
 
     private void HandleCrouch()
     {
-        float targetHeight = Input.GetKey(KeyCode.C) ? crouchHeight : standingHeight;
+        bool wantsToCrouch = Input.GetKey(KeyCode.C);
+        float targetHeight = wantsToCrouch ? crouchHeight : standingHeight;
         float smoothHeight = Mathf.Lerp(characterController.height, targetHeight, Time.deltaTime * 10f);
-        isCrouching = smoothHeight < standingHeight - 0.05f;
+        isCrouching = wantsToCrouch || smoothHeight < standingHeight - 0.05f;
         characterController.height = smoothHeight;
 
         float ratio = smoothHeight / standingHeight;
