@@ -36,6 +36,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float groundedGraceTime = 0.15f;
 
     public bool IsProducingRunNoise { get; private set; }
+    public bool IsProducingFootstepNoise { get; private set; }
+    public float MovementNoiseStrength { get; private set; }
 
     private void Awake()
     {
@@ -102,18 +104,37 @@ public class PlayerController : MonoBehaviour
         Vector3 move = transform.right * moveX + transform.forward * moveZ;
         characterController.Move(move * (speed * Time.deltaTime));
 
+        bool isMoving = move.magnitude > 0.2f;
+        bool isRecentlyGrounded =
+            Time.time - lastGroundedTime < groundedGraceTime;
+        bool isAudibleMovement =
+            isMoving &&
+            isRecentlyGrounded &&
+            velocity.y <= 0.1f;
+        float inputMagnitude = Mathf.Clamp01(new Vector2(moveX, moveZ).magnitude);
+
+        if (isAudibleMovement)
+        {
+            float baseNoise =
+                isSprinting ? 1f :
+                isCrouching ? 0.28f :
+                0.68f;
+
+            MovementNoiseStrength = baseNoise * Mathf.Lerp(0.55f, 1f, inputMagnitude);
+            IsProducingFootstepNoise = MovementNoiseStrength > 0.05f;
+        }
+        else
+        {
+            MovementNoiseStrength = 0f;
+            IsProducingFootstepNoise = false;
+        }
+
         // running sound: hold Shift + moving + grounded → loop
         if (runningAudioSource != null)
         {
-            bool isMoving = move.magnitude > 0.2f;
-            bool isRecentlyGrounded =
-                Time.time - lastGroundedTime < groundedGraceTime;
-
             bool shouldRunSound =
                 isSprinting &&
-                isMoving &&
-                isRecentlyGrounded &&
-                velocity.y <= 0.1f;
+                isAudibleMovement;
 
             IsProducingRunNoise = shouldRunSound;
 

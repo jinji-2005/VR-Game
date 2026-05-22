@@ -23,6 +23,10 @@ public class EntityAnimator : MonoBehaviour
     [SerializeField] private float walkCycleSpeed = 9.5f;
     [SerializeField] private float moveBobAmplitude = 0.08f;
     [SerializeField] private float forwardLeanAngle = 11f;
+    [SerializeField] private float movementActivationThreshold = 0.035f;
+    [SerializeField] private float minimumVisibleMoveBlend = 0.42f;
+    [SerializeField] private float bodyMotionBoost = 1.8f;
+    [SerializeField] private float legMotionBoost = 1.85f;
 
     [Header("Leg Motion")]
     [SerializeField] private float legSwingAngle = 22f;
@@ -77,15 +81,16 @@ public class EntityAnimator : MonoBehaviour
         float speedMult = isChasing ? chaseMultiplier : 1f;
         float move01 = GetMovementBlend();
         locomotionBlend = Mathf.Lerp(locomotionBlend, move01, Time.deltaTime * moveResponse);
+        float visibleMoveBlend = GetVisibleMoveBlend(locomotionBlend);
         animationBlend = Mathf.Lerp(animationBlend, isChasing ? 0.18f : 1f, Time.deltaTime * 6f);
-        walkCycle += Time.deltaTime * walkCycleSpeed * Mathf.Lerp(0.65f, 1.35f, locomotionBlend) * speedMult;
+        walkCycle += Time.deltaTime * walkCycleSpeed * Mathf.Lerp(0.8f, 1.45f, visibleMoveBlend) * speedMult;
 
         float t = Time.time;
         float breathe = Mathf.Sin(t * breatheSpeed * speedMult) * breatheAmplitude * animationBlend;
-        float wobbleX = Mathf.Sin(t * wobbleSpeed * speedMult) * wobbleAmplitude * Mathf.Lerp(1f, 0.45f, locomotionBlend);
-        float wobbleZ = Mathf.Cos(t * wobbleSpeed * 1.3f * speedMult) * wobbleAmplitude * Mathf.Lerp(1f, 0.5f, locomotionBlend);
+        float wobbleX = Mathf.Sin(t * wobbleSpeed * speedMult) * wobbleAmplitude * Mathf.Lerp(1f, 0.45f, visibleMoveBlend);
+        float wobbleZ = Mathf.Cos(t * wobbleSpeed * 1.3f * speedMult) * wobbleAmplitude * Mathf.Lerp(1f, 0.5f, visibleMoveBlend);
         float floatY = Mathf.Abs(Mathf.Sin(t * floatSpeed * speedMult)) * floatAmplitude * animationBlend;
-        float moveBob = Mathf.Abs(Mathf.Sin(walkCycle)) * moveBobAmplitude * locomotionBlend;
+        float moveBob = Mathf.Abs(Mathf.Sin(walkCycle)) * moveBobAmplitude * visibleMoveBlend * bodyMotionBoost;
 
         bool canAnimateTransform = animationTarget != transform || transform.parent != null;
         bool canAnimatePosition = canAnimateTransform;
@@ -96,17 +101,17 @@ public class EntityAnimator : MonoBehaviour
         {
             float tiltAngle = Mathf.Sin(t * wobbleSpeed * 0.7f * speedMult) * 3f;
             float chaseLean = isChasing ? 8f : 0f;
-            float moveLean = forwardLeanAngle * locomotionBlend;
-            float roll = tiltAngle + Mathf.Sin(walkCycle * 0.5f) * 3f * locomotionBlend;
+            float moveLean = forwardLeanAngle * visibleMoveBlend;
+            float roll = tiltAngle + Mathf.Sin(walkCycle * 0.5f) * 4.5f * visibleMoveBlend;
             animationTarget.localRotation = baseRotation * Quaternion.Euler(chaseLean + moveLean + tiltAngle * 0.35f, 0f, roll);
         }
 
         float pulse = 1f + breathe * 0.12f;
         animationTarget.localScale = new Vector3(baseScale.x * pulse, baseScale.y * (1f + breathe * 0.08f), baseScale.z * pulse);
 
-        ApplyBodyMotion(speedMult, breathe, moveBob, isChasing);
-        ApplyLegMotion(leftLegs, leftLegBaseRotations, 0f);
-        ApplyLegMotion(rightLegs, rightLegBaseRotations, Mathf.PI);
+        ApplyBodyMotion(speedMult, breathe, moveBob, isChasing, visibleMoveBlend);
+        ApplyLegMotion(leftLegs, leftLegBaseRotations, 0f, visibleMoveBlend);
+        ApplyLegMotion(rightLegs, rightLegBaseRotations, Mathf.PI, visibleMoveBlend);
     }
 
     private bool IsChasing()
@@ -116,6 +121,10 @@ public class EntityAnimator : MonoBehaviour
 
     private Transform ResolveAnimationTarget()
     {
+        Transform preferredTarget = FindFirstNamedChild(transform, bodyTargetNames);
+        if (preferredTarget != null)
+            return preferredTarget;
+
         Transform bestChild = null;
         int bestScore = -1;
 
@@ -150,9 +159,17 @@ public class EntityAnimator : MonoBehaviour
         return Mathf.Clamp01(blendedSpeed / Mathf.Max(configuredMaxSpeed, 0.01f));
     }
 
+    private float GetVisibleMoveBlend(float rawMoveBlend)
+    {
+        if (rawMoveBlend <= movementActivationThreshold)
+            return 0f;
+
+        return Mathf.Lerp(minimumVisibleMoveBlend, 1f, rawMoveBlend);
+    }
+
     private void CacheLegTargets()
     {
-        Transform searchRoot = animationTarget != null ? animationTarget : transform;
+        Transform searchRoot = controller != null ? controller.transform : transform;
         bodyTargets = FindNamedChildren(searchRoot, bodyTargetNames);
         bodyBasePositions = CaptureLocalPositions(bodyTargets);
         bodyBaseRotations = CaptureLocalRotations(bodyTargets);
@@ -160,6 +177,30 @@ public class EntityAnimator : MonoBehaviour
         rightLegs = FindNamedChildren(searchRoot, rightLegNames);
         leftLegBaseRotations = CaptureLocalRotations(leftLegs);
         rightLegBaseRotations = CaptureLocalRotations(rightLegs);
+
+        Debug.Log(
+            $"[EntityAnimator] Bound bodyTargets={bodyTargets.Length}, leftLegs={leftLegs.Length}, rightLegs={rightLegs.Length} on {name}",
+            this);
+    }
+
+    private Transform FindFirstNamedChild(Transform searchRoot, string[] desiredNames)
+    {
+        if (searchRoot == null || desiredNames == null || desiredNames.Length == 0)
+            return null;
+
+        Transform[] allChildren = searchRoot.GetComponentsInChildren<Transform>(true);
+        for (int desiredIndex = 0; desiredIndex < desiredNames.Length; desiredIndex++)
+        {
+            string desiredName = desiredNames[desiredIndex];
+            for (int childIndex = 0; childIndex < allChildren.Length; childIndex++)
+            {
+                Transform candidate = allChildren[childIndex];
+                if (string.Equals(candidate.name, desiredName, System.StringComparison.OrdinalIgnoreCase))
+                    return candidate;
+            }
+        }
+
+        return null;
     }
 
     private Transform[] FindNamedChildren(Transform searchRoot, string[] desiredNames)
@@ -205,7 +246,7 @@ public class EntityAnimator : MonoBehaviour
         return positions;
     }
 
-    private void ApplyBodyMotion(float speedMult, float breathe, float moveBob, bool isChasing)
+    private void ApplyBodyMotion(float speedMult, float breathe, float moveBob, bool isChasing, float visibleMoveBlend)
     {
         if (bodyTargets == null || bodyBasePositions == null || bodyBaseRotations == null)
             return;
@@ -217,18 +258,18 @@ public class EntityAnimator : MonoBehaviour
                 continue;
 
             float phase = walkCycle + i * 0.45f;
-            float swayX = Mathf.Sin(phase) * 0.03f * locomotionBlend;
+            float swayX = Mathf.Sin(phase) * 0.045f * visibleMoveBlend * bodyMotionBoost;
             float swayY = moveBob * (0.65f + i * 0.06f) + breathe * 0.25f;
-            float swayZ = Mathf.Cos(phase * 0.5f) * 0.02f * locomotionBlend;
-            float pitch = Mathf.Sin(phase) * 7f * locomotionBlend + (isChasing ? 4f : 0f);
-            float roll = Mathf.Cos(phase) * 6f * locomotionBlend;
+            float swayZ = Mathf.Cos(phase * 0.5f) * 0.03f * visibleMoveBlend * bodyMotionBoost;
+            float pitch = Mathf.Sin(phase) * 11f * visibleMoveBlend + (isChasing ? 5f : 0f);
+            float roll = Mathf.Cos(phase) * 9f * visibleMoveBlend;
 
             target.localPosition = bodyBasePositions[i] + new Vector3(swayX, swayY, swayZ);
             target.localRotation = bodyBaseRotations[i] * Quaternion.Euler(pitch, 0f, roll);
         }
     }
 
-    private void ApplyLegMotion(Transform[] legs, Quaternion[] baseRotations, float phaseOffset)
+    private void ApplyLegMotion(Transform[] legs, Quaternion[] baseRotations, float phaseOffset, float visibleMoveBlend)
     {
         if (legs == null || baseRotations == null)
             return;
@@ -239,8 +280,8 @@ public class EntityAnimator : MonoBehaviour
                 continue;
 
             float phase = walkCycle + phaseOffset + i * 0.35f;
-            float swing = Mathf.Sin(phase) * legSwingAngle * locomotionBlend;
-            float twist = Mathf.Cos(phase) * legTwistAngle * locomotionBlend;
+            float swing = Mathf.Sin(phase) * legSwingAngle * visibleMoveBlend * legMotionBoost;
+            float twist = Mathf.Cos(phase) * legTwistAngle * visibleMoveBlend * legMotionBoost;
             legs[i].localRotation = baseRotations[i] * Quaternion.Euler(swing, 0f, twist);
         }
     }

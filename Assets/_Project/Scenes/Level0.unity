@@ -539,6 +539,10 @@ MonoBehaviour:
   walkCycleSpeed: 9.5
   moveBobAmplitude: 0.08
   forwardLeanAngle: 11
+  movementActivationThreshold: 0.035
+  minimumVisibleMoveBlend: 0.42
+  bodyMotionBoost: 1.8
+  legMotionBoost: 1.85
   legSwingAngle: 22
   legTwistAngle: 10
   leftLegNames:
@@ -576,6 +580,12 @@ MonoBehaviour:
   eyeHeight: 1.25
   hearingRange: 8
   maxHearingVerticalDifference: 2.2
+  frontDetectionRange: 9.5
+  frontDetectionAngle: 145
+  rearDetectionMultiplier: 0.55
+  directChaseDistance: 2.2
+  frontalHearingBonus: 2
+  hearingChaseThreshold: 0.72
   patrolSpeed: 0.7
   chaseSpeed: 6
   investigateSpeed: 1.15
@@ -3104,15 +3114,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0f276bed3874f4062984661845fb7a1d, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 1.2180834
+      value: -3
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0f276bed3874f4062984661845fb7a1d, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0f276bed3874f4062984661845fb7a1d, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.39
+      value: 1.5
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0f276bed3874f4062984661845fb7a1d, type: 3}
       propertyPath: m_LocalRotation.w

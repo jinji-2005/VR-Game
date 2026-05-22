@@ -13,6 +13,12 @@ public class BacteriaController : MonoBehaviour
     [SerializeField] private float eyeHeight = 1.25f;
     [SerializeField] private float hearingRange = 8f;
     [SerializeField] private float maxHearingVerticalDifference = 2.2f;
+    [SerializeField] private float frontDetectionRange = 9.5f;
+    [SerializeField, Range(0f, 180f)] private float frontDetectionAngle = 145f;
+    [SerializeField, Range(0.1f, 1f)] private float rearDetectionMultiplier = 0.55f;
+    [SerializeField] private float directChaseDistance = 2.2f;
+    [SerializeField] private float frontalHearingBonus = 2f;
+    [SerializeField, Range(0f, 1f)] private float hearingChaseThreshold = 0.72f;
 
     [Header("Movement")]
     [SerializeField] private float patrolSpeed = 2f;
@@ -175,7 +181,7 @@ public class BacteriaController : MonoBehaviour
 
     private void UpdateIdle()
     {
-        if (CanDetectPlayer(detectRange, requireSight: true))
+        if (CanImmediatelyChasePlayer() || CanDetectPlayer(detectRange, requireSight: true))
         {
             EnterState(State.Chase);
             return;
@@ -188,7 +194,7 @@ public class BacteriaController : MonoBehaviour
 
     private void UpdatePatrol()
     {
-        if (CanDetectPlayer(detectRange, requireSight: true))
+        if (CanImmediatelyChasePlayer() || CanDetectPlayer(detectRange, requireSight: true))
         {
             EnterState(State.Chase);
             return;
@@ -224,7 +230,7 @@ public class BacteriaController : MonoBehaviour
 
         Vector3 chaseTarget = canTrackPlayer ? playerTarget.transform.position : lastKnownPlayerPosition;
         float chaseStopDistance = Mathf.Max(0.35f, stoppingDistance * 0.7f);
-        if (MoveTowards(chaseTarget, chaseSpeed, chaseStopDistance, chaseRadius))
+        if (MoveTowards(chaseTarget, chaseSpeed, chaseStopDistance, GetAlertLeashRadius()))
             return;
 
         FaceTowards(chaseTarget);
@@ -237,7 +243,7 @@ public class BacteriaController : MonoBehaviour
     {
         lostTimer -= Time.deltaTime;
 
-        if (CanDetectPlayer(detectRange, requireSight: true))
+        if (CanImmediatelyChasePlayer() || CanDetectPlayer(detectRange, requireSight: true))
         {
             EnterState(State.Chase);
             return;
@@ -250,7 +256,7 @@ public class BacteriaController : MonoBehaviour
         }
 
         Vector3 searchTarget = hasLastKnownPlayerPosition ? lastKnownPlayerPosition : patrolOrigin;
-        bool moved = MoveTowards(searchTarget, patrolSpeed * 0.8f, 0.25f, chaseRadius);
+        bool moved = MoveTowards(searchTarget, patrolSpeed * 0.8f, 0.25f, GetAlertLeashRadius());
 
         if (!moved && IsWithinPlanarDistance(searchTarget, 0.35f))
             EnterState(State.Patrol);
@@ -258,14 +264,14 @@ public class BacteriaController : MonoBehaviour
 
     private void UpdateInvestigate()
     {
-        if (CanDetectPlayer(detectRange, requireSight: true))
+        if (CanImmediatelyChasePlayer() || CanDetectPlayer(detectRange, requireSight: true))
         {
             EnterState(State.Chase);
             return;
         }
 
         investigateTimer -= Time.deltaTime;
-        bool moved = MoveTowards(investigateTarget, investigateSpeed, 0.45f, chaseRadius);
+        bool moved = MoveTowards(investigateTarget, investigateSpeed, 0.45f, GetAlertLeashRadius());
 
         if (!moved || investigateTimer <= 0f)
             EnterState(State.Patrol);
@@ -290,8 +296,15 @@ public class BacteriaController : MonoBehaviour
         if (currentState == State.Chase)
             return;
 
-        if (!CanHearPlayerRunning(out Vector3 soundTarget))
+        if (!CanHearPlayerMovement(out Vector3 soundTarget, out float heardStrength))
             return;
+
+        if (CanImmediatelyChasePlayer() || heardStrength >= hearingChaseThreshold)
+        {
+            RememberPlayerPosition(soundTarget);
+            EnterState(State.Chase);
+            return;
+        }
 
         bool shouldRefreshTarget =
             currentState != State.Investigate ||
@@ -300,7 +313,7 @@ public class BacteriaController : MonoBehaviour
         if (!shouldRefreshTarget)
             return;
 
-        investigateTarget = ClampToPatrolBounds(soundTarget, chaseRadius);
+        investigateTarget = ClampToPatrolBounds(soundTarget, GetAlertLeashRadius());
         EnterState(State.Investigate);
     }
 
@@ -311,13 +324,24 @@ public class BacteriaController : MonoBehaviour
 
         Vector3 toPlayer = playerTarget.transform.position - transform.position;
         toPlayer.y = 0f;
-        if (toPlayer.sqrMagnitude > range * range)
-            return false;
+        float planarDistance = toPlayer.magnitude;
+        if (planarDistance <= 0.001f)
+        {
+            RememberPlayerPosition(playerTarget.transform.position);
+            return true;
+        }
 
-        if (!IsWithinRadiusFromOrigin(playerTarget.transform.position, chaseRadius))
+        if (!IsWithinRadiusFromOrigin(playerTarget.transform.position, GetAlertLeashRadius()))
             return false;
 
         if (requireSight && requireLineOfSight && !HasLineOfSightToPlayer())
+            return false;
+
+        float effectiveRange = requireSight
+            ? GetEffectiveSightRange(range, toPlayer / planarDistance)
+            : Mathf.Max(range, frontDetectionRange);
+
+        if (planarDistance > effectiveRange)
             return false;
 
         RememberPlayerPosition(playerTarget.transform.position);
@@ -397,9 +421,43 @@ public class BacteriaController : MonoBehaviour
         return true;
     }
 
-    private bool CanHearPlayerRunning(out Vector3 soundTarget)
+    private bool CanImmediatelyChasePlayer()
+    {
+        if (!HasPlayerReference())
+            return false;
+
+        Vector3 toPlayer = playerTarget.transform.position - transform.position;
+        toPlayer.y = 0f;
+        float planarDistance = toPlayer.magnitude;
+        if (planarDistance <= 0.001f)
+            return true;
+
+        if (!IsWithinRadiusFromOrigin(playerTarget.transform.position, GetAlertLeashRadius()))
+            return false;
+
+        if (requireLineOfSight && !HasLineOfSightToPlayer())
+            return false;
+
+        if (planarDistance <= directChaseDistance)
+        {
+            RememberPlayerPosition(playerTarget.transform.position);
+            return true;
+        }
+
+        if (planarDistance > frontDetectionRange)
+            return false;
+
+        if (!IsInFront(toPlayer / planarDistance, frontDetectionAngle))
+            return false;
+
+        RememberPlayerPosition(playerTarget.transform.position);
+        return true;
+    }
+
+    private bool CanHearPlayerMovement(out Vector3 soundTarget, out float heardStrength)
     {
         soundTarget = transform.position;
+        heardStrength = 0f;
 
         if (!HasPlayerReference())
             return false;
@@ -407,7 +465,7 @@ public class BacteriaController : MonoBehaviour
         if (playerController == null && playerTarget != null)
             playerController = playerTarget.GetComponent<PlayerController>();
 
-        if (playerController == null || !playerController.IsProducingRunNoise)
+        if (playerController == null || !playerController.IsProducingFootstepNoise)
             return false;
 
         Vector3 playerPosition = playerTarget.transform.position;
@@ -416,11 +474,26 @@ public class BacteriaController : MonoBehaviour
 
         Vector3 planarOffset = playerPosition - transform.position;
         planarOffset.y = 0f;
+        float planarDistance = planarOffset.magnitude;
+        if (planarDistance <= 0.001f)
+        {
+            soundTarget = playerPosition;
+            heardStrength = 1f;
+            return true;
+        }
 
-        if (planarOffset.sqrMagnitude > hearingRange * hearingRange)
+        Vector3 directionToPlayer = planarOffset / planarDistance;
+        float baseNoiseStrength = Mathf.Clamp01(playerController.MovementNoiseStrength);
+        float effectiveHearingRange = hearingRange * Mathf.Lerp(0.7f, 1.35f, baseNoiseStrength);
+        if (IsInFront(directionToPlayer, frontDetectionAngle + 15f))
+            effectiveHearingRange += frontalHearingBonus;
+
+        if (planarDistance > effectiveHearingRange)
             return false;
 
         soundTarget = playerPosition;
+        float distanceFactor = 1f - Mathf.Clamp01(planarDistance / Mathf.Max(effectiveHearingRange, 0.01f));
+        heardStrength = Mathf.Clamp01(baseNoiseStrength * 0.7f + distanceFactor * 0.6f);
         return true;
     }
 
@@ -563,6 +636,29 @@ public class BacteriaController : MonoBehaviour
         return offset.sqrMagnitude <= radius * radius;
     }
 
+    private float GetEffectiveSightRange(float baseRange, Vector3 directionToPlayer)
+    {
+        if (IsInFront(directionToPlayer, frontDetectionAngle))
+            return Mathf.Max(baseRange, frontDetectionRange);
+
+        return baseRange * rearDetectionMultiplier;
+    }
+
+    private float GetAlertLeashRadius()
+    {
+        return Mathf.Max(chaseRadius, frontDetectionRange, hearingRange + frontalHearingBonus, detectRange + 1f);
+    }
+
+    private bool IsInFront(Vector3 directionToPlayer, float viewAngleDegrees)
+    {
+        Vector3 forward = transform.forward;
+        forward.y = 0f;
+        if (forward.sqrMagnitude <= 0.0001f)
+            return true;
+
+        return Vector3.Angle(forward.normalized, directionToPlayer.normalized) <= viewAngleDegrees * 0.5f;
+    }
+
     private Vector3 ClampToPatrolBounds(Vector3 worldPosition, float radius)
     {
         Vector3 offset = worldPosition - patrolOrigin;
@@ -640,7 +736,7 @@ public class BacteriaController : MonoBehaviour
 
     private void RememberPlayerPosition(Vector3 playerPosition)
     {
-        lastKnownPlayerPosition = ClampToPatrolBounds(playerPosition, chaseRadius);
+        lastKnownPlayerPosition = ClampToPatrolBounds(playerPosition, GetAlertLeashRadius());
         chaseMemoryTimer = chaseMemoryDuration;
         hasLastKnownPlayerPosition = true;
     }
