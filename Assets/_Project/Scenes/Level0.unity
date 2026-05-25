@@ -160,11 +160,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0f276bed3874f4062984661845fb7a1d, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.096
+      value: 9.059
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0f276bed3874f4062984661845fb7a1d, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 1
+      value: 0.30070582
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0f276bed3874f4062984661845fb7a1d, type: 3}
       propertyPath: m_LocalRotation.x
@@ -172,7 +172,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0f276bed3874f4062984661845fb7a1d, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: 0.953717
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0f276bed3874f4062984661845fb7a1d, type: 3}
       propertyPath: m_LocalRotation.z
@@ -184,7 +184,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0f276bed3874f4062984661845fb7a1d, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
+      value: 145
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0f276bed3874f4062984661845fb7a1d, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
@@ -301,13 +301,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f764e4553a9a541f59048349ee59386c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  killDistance: 1.1
+  killDistance: 1
   verticalKillDistance: 1.6
   attackPointOffset: {x: 0, y: 1.35, z: 0}
   player: {fileID: 1983420676}
   deathOverlay: {fileID: 0}
-  deathSound: {fileID: 0}
-  restartDelay: 3
+  deathSound: {fileID: 8300000, guid: ba9a8f834fc4ac84d83b76b78e07c0b5, type: 3}
+  restartDelay: 2.5
   cameraLookSpeed: 5
   headBoneNames:
   - CableHead
@@ -396,7 +396,7 @@ MonoBehaviour:
   - 3.2
   - 4
   patrolRadius: 4.5
-  chaseRadius: 5.5
+  chaseRadius: 15
   obstacleMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -434,7 +434,7 @@ MonoBehaviour:
   patrolEscapeDistance: 1.1
   patrolEscapeDuration: 0.45
   patrolEscapeSpeedMultiplier: 0.9
-  chaseSound: {fileID: 0}
+  chaseSound: {fileID: 8300000, guid: 9c5b74b659b99514d850212a05cc1ea4, type: 3}
   currentState: 0
   playerTarget: {fileID: 0}
   disableImportedPlaneMeshes: 1
@@ -826,7 +826,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f764e4553a9a541f59048349ee59386c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  killDistance: 1.1
+  killDistance: 1
   verticalKillDistance: 1.6
   attackPointOffset: {x: 0, y: 1.35, z: 0}
   player: {fileID: 1983420676}
@@ -2445,6 +2445,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   bacteriaToActivate:
   - {fileID: 297751703}
+  - {fileID: 9304945}
   activateOnce: 1
 --- !u!4 &1554688072
 Transform:
@@ -2812,7 +2813,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d0935a32fbf629c4c9feefaedc767e49, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  nextSceneName: Level1
+  nextSceneName: Level45
   triggerOnEnter: 1
   interactionPrompt: <b><color=#FFD700>[E]</color></b> Enter
 --- !u!1 &1696984705
@@ -3458,7 +3459,7 @@ Transform:
   m_GameObject: {fileID: 1983420676}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.8534375, z: -0, w: 0.52119523}
-  m_LocalPosition: {x: 9.02, y: 3.093, z: 0.47}
+  m_LocalPosition: {x: 15.152, y: 3.093, z: -2.678}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
