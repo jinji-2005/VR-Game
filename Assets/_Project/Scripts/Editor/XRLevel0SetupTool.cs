@@ -407,6 +407,9 @@ public static class XRLevel0SetupTool
         CharacterControllerDriver driver = officialSetup.GetComponentInChildren<CharacterControllerDriver>(true);
         Camera xriCamera = officialSetup.GetComponentInChildren<Camera>(true);
 
+        if (xriCharacter != null)
+            xriCharacter.gameObject.tag = "Player";
+
         if (desktopController != null && moveProvider != null)
             moveProvider.moveSpeed = desktopController.WalkSpeed;
 

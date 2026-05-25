@@ -45,6 +45,10 @@ public class PlayerController : MonoBehaviour
     public float JumpForce => jumpForce;
     public float CrouchHeight => crouchHeight;
     public float CrouchSpeed => crouchSpeed;
+    public bool IsProducingRunNoise { get; private set; }
+    public bool IsProducingFootstepNoise { get; private set; }
+    public float MovementNoiseStrength { get; private set; }
+    public bool IsCrouching => isCrouching;
 
     private void Awake()
     {
@@ -78,8 +82,8 @@ public class PlayerController : MonoBehaviour
         }
 
         HandleMouseLook();
-        HandleMovement();
         HandleCrouch();
+        HandleMovement();
         LimitCameraPlanarOffset();
     }
 
@@ -123,18 +127,40 @@ public class PlayerController : MonoBehaviour
         Vector3 move = transform.right * moveX + transform.forward * moveZ;
         characterController.Move(move * (speed * Time.deltaTime));
 
+        bool isMoving = move.magnitude > 0.2f;
+        bool isRecentlyGrounded =
+            Time.time - lastGroundedTime < groundedGraceTime;
+        bool isAudibleMovement =
+            !isCrouching &&
+            isMoving &&
+            isRecentlyGrounded &&
+            velocity.y <= 0.1f;
+        float inputMagnitude = Mathf.Clamp01(new Vector2(moveX, moveZ).magnitude);
+
+        if (isAudibleMovement)
+        {
+            float baseNoise =
+                isSprinting ? 1f :
+                isCrouching ? 0.28f :
+                0.68f;
+
+            MovementNoiseStrength = baseNoise * Mathf.Lerp(0.55f, 1f, inputMagnitude);
+            IsProducingFootstepNoise = MovementNoiseStrength > 0.05f;
+        }
+        else
+        {
+            MovementNoiseStrength = 0f;
+            IsProducingFootstepNoise = false;
+        }
+
         // running sound: hold Shift + moving + grounded → loop
         if (runningAudioSource != null)
         {
-            bool isMoving = move.magnitude > 0.2f;
-            bool isRecentlyGrounded =
-                Time.time - lastGroundedTime < groundedGraceTime;
-
             bool shouldRunSound =
                 isSprinting &&
-                isMoving &&
-                isRecentlyGrounded &&
-                velocity.y <= 0.1f;
+                isAudibleMovement;
+
+            IsProducingRunNoise = shouldRunSound;
 
             if (!runningAudioSource.isPlaying)
             {
@@ -149,6 +175,10 @@ public class PlayerController : MonoBehaviour
                 targetVolume,
                 Time.deltaTime * 12f
             );
+        }
+        else
+        {
+            IsProducingRunNoise = false;
         }
 
         if (Input.GetKeyDown(KeyCode.Space))
@@ -172,9 +202,10 @@ public class PlayerController : MonoBehaviour
 
     private void HandleCrouch()
     {
-        float targetHeight = Input.GetKey(KeyCode.C) ? crouchHeight : standingHeight;
+        bool wantsToCrouch = Input.GetKey(KeyCode.C);
+        float targetHeight = wantsToCrouch ? crouchHeight : standingHeight;
         float smoothHeight = Mathf.Lerp(characterController.height, targetHeight, Time.deltaTime * 10f);
-        isCrouching = smoothHeight < standingHeight - 0.05f;
+        isCrouching = wantsToCrouch || smoothHeight < standingHeight - 0.05f;
         characterController.height = smoothHeight;
 
         float ratio = smoothHeight / standingHeight;

@@ -18,8 +18,16 @@ public class XRIOfficialPlayerTuning : MonoBehaviour
     private InputAction sprintAction;
     private bool enabledSprintActionLocally;
 
+    public CharacterController BodyController => bodyController;
+    public GameObject PlayerTarget => bodyController != null ? bodyController.gameObject : gameObject;
+    public bool IsProducingFootstepNoise { get; private set; }
+    public float MovementNoiseStrength { get; private set; }
+
     private void OnEnable()
     {
+        if (bodyController != null)
+            bodyController.gameObject.tag = "Player";
+
         sprintAction = xriInputActions != null ? xriInputActions.FindAction(sprintActionPath) : null;
         if (sprintAction != null && !sprintAction.enabled)
         {
@@ -38,6 +46,9 @@ public class XRIOfficialPlayerTuning : MonoBehaviour
 
         if (moveProvider != null)
             moveProvider.moveSpeed = walkSpeed;
+
+        IsProducingFootstepNoise = false;
+        MovementNoiseStrength = 0f;
     }
 
     private void Update()
@@ -50,5 +61,38 @@ public class XRIOfficialPlayerTuning : MonoBehaviour
         moveProvider.moveSpeed = crouching
             ? crouchSpeed
             : walkSpeed * (sprinting ? sprintMultiplier : 1f);
+
+        UpdateMovementNoise(crouching, sprinting);
+    }
+
+    public void DisableLocomotion()
+    {
+        if (moveProvider != null)
+            moveProvider.enabled = false;
+    }
+
+    private void UpdateMovementNoise(bool crouching, bool sprinting)
+    {
+        if (bodyController == null)
+        {
+            IsProducingFootstepNoise = false;
+            MovementNoiseStrength = 0f;
+            return;
+        }
+
+        Vector3 movement = bodyController.velocity;
+        movement.y = 0f;
+        bool audibleMovement = !crouching && bodyController.isGrounded && movement.magnitude > 0.2f;
+        if (!audibleMovement)
+        {
+            IsProducingFootstepNoise = false;
+            MovementNoiseStrength = 0f;
+            return;
+        }
+
+        float baseNoise = sprinting ? 1f : 0.68f;
+        float inputMagnitude = Mathf.Clamp01(movement.magnitude / Mathf.Max(walkSpeed, 0.01f));
+        MovementNoiseStrength = baseNoise * Mathf.Lerp(0.55f, 1f, inputMagnitude);
+        IsProducingFootstepNoise = MovementNoiseStrength > 0.05f;
     }
 }
