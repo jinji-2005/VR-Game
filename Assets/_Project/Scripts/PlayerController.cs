@@ -40,6 +40,18 @@ public class PlayerController : MonoBehaviour
     public float MovementNoiseStrength { get; private set; }
     public bool IsCrouching => isCrouching;
 
+    public void StopAllNoise()
+    {
+        IsProducingFootstepNoise = false;
+        MovementNoiseStrength = 0f;
+
+        if (runningAudioSource != null)
+        {
+            runningAudioSource.Stop();
+            runningAudioSource.volume = 0f;
+        }
+    }
+
     private void Awake()
     {
         characterController = GetComponent<CharacterController>();

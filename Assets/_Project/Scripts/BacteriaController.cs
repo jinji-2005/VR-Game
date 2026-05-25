@@ -61,7 +61,6 @@ public class BacteriaController : MonoBehaviour
 
     [Header("Chase Memory")]
     [SerializeField] private float chaseMemoryDuration = 4.5f;
-    [SerializeField] private float lostSearchDuration = 3f;
     [SerializeField] private float lostSightPatrolDelay = 2f;
     [SerializeField] private float returnToOriginTimeout = 10f;
 
@@ -73,10 +72,17 @@ public class BacteriaController : MonoBehaviour
     [SerializeField] private float patrolEscapeDuration = 0.45f;
     [SerializeField] private float patrolEscapeSpeedMultiplier = 0.9f;
 
+    [Header("Audio")]
+    [SerializeField] private AudioClip chaseSound;
+
     [Header("State")]
     public State currentState = State.Idle;
     [SerializeField] private GameObject playerTarget;
     [SerializeField] private bool disableImportedPlaneMeshes = true;
+    [SerializeField] private bool startDormant;
+
+    private bool dormant;
+    private AudioSource chaseAudioSource;
 
     private int currentPatrolIndex;
     private float patrolWaitTimer;
@@ -108,8 +114,15 @@ public class BacteriaController : MonoBehaviour
     public float CurrentMoveSpeed => currentMoveSpeed;
     public float MaxConfiguredSpeed => Mathf.Max(patrolSpeed, chaseSpeed, investigateSpeed, 0.01f);
 
+    public void StopChaseSound()
+    {
+        if (chaseAudioSource != null && chaseAudioSource.isPlaying)
+            chaseAudioSource.Stop();
+    }
+
     private void Awake()
     {
+        dormant = startDormant;
         patrolOrigin = transform.position;
         patrolAngleOffset = Random.Range(0f, Mathf.PI * 2f);
         if (obstacleMask.value == 0)
@@ -119,15 +132,34 @@ public class BacteriaController : MonoBehaviour
         CalibrateTraversalProfile();
         DimNearbySceneLights();
         CachePlayerReference(forceSearch: true);
+
+        chaseAudioSource = gameObject.AddComponent<AudioSource>();
+        chaseAudioSource.playOnAwake = false;
+        chaseAudioSource.loop = true;
+        chaseAudioSource.spatialBlend = 1f;
+        chaseAudioSource.clip = chaseSound;
     }
 
     private void Start()
     {
+        if (!dormant)
+            EnterState(State.Idle);
+    }
+
+    public void Activate()
+    {
+        if (!dormant)
+            return;
+
+        dormant = false;
         EnterState(State.Idle);
     }
 
     private void Update()
     {
+        if (dormant)
+            return;
+
         CachePlayerReference();
         UpdateSoundInvestigation();
 
@@ -187,6 +219,13 @@ public class BacteriaController : MonoBehaviour
         currentState = newState;
         ResetMovementRecovery();
         ResetPatrolEscape();
+
+        // Stop chase sound when leaving Chase state
+        if (chaseAudioSource != null && chaseAudioSource.isPlaying)
+        {
+            chaseAudioSource.Stop();
+            chaseAudioSource.clip = null;
+        }
 
         switch (newState)
         {
@@ -275,6 +314,11 @@ public class BacteriaController : MonoBehaviour
         if (canSeePlayer)
         {
             lostSightTimer = lostSightPatrolDelay;
+            if (chaseAudioSource != null && chaseSound != null && !chaseAudioSource.isPlaying)
+            {
+                chaseAudioSource.clip = chaseSound;
+                chaseAudioSource.Play();
+            }
         }
         else
         {
