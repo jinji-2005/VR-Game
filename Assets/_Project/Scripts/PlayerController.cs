@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.XR;
 
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
@@ -23,6 +24,9 @@ public class PlayerController : MonoBehaviour
     [Header("Audio")]
     [SerializeField] private AudioSource runningAudioSource;
 
+    [Header("XR")]
+    [SerializeField] private bool disableDesktopInputWhenXRActive = true;
+
     private CharacterController characterController;
     private Vector3 velocity;
     private float pitch;
@@ -34,6 +38,13 @@ public class PlayerController : MonoBehaviour
 
     private float lastGroundedTime;
     [SerializeField] private float groundedGraceTime = 0.15f;
+
+    public float WalkSpeed => walkSpeed;
+    public float SprintMultiplier => sprintMultiplier;
+    public float Gravity => gravity;
+    public float JumpForce => jumpForce;
+    public float CrouchHeight => crouchHeight;
+    public float CrouchSpeed => crouchSpeed;
 
     private void Awake()
     {
@@ -54,6 +65,18 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
+        if (VRDemoSimulator.IsDemoModeActive)
+        {
+            LimitCameraPlanarOffset();
+            return;
+        }
+
+        if (disableDesktopInputWhenXRActive && IsXRDeviceActive())
+        {
+            LimitCameraPlanarOffset();
+            return;
+        }
+
         HandleMouseLook();
         HandleMovement();
         HandleCrouch();
@@ -187,5 +210,14 @@ public class PlayerController : MonoBehaviour
 
         Vector2 clampedOffset = planarOffset.normalized * maxPlanarOffset;
         cameraTransform.localPosition = new Vector3(clampedOffset.x, localPosition.y, clampedOffset.y);
+    }
+
+    private static bool IsXRDeviceActive()
+    {
+        if (XRSettings.isDeviceActive)
+            return true;
+
+        InputDevice headDevice = InputDevices.GetDeviceAtXRNode(XRNode.CenterEye);
+        return headDevice.isValid;
     }
 }

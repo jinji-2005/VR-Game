@@ -51,6 +51,9 @@ public class LockedDoor : MonoBehaviour, IInteractable
             return;
 
         var inventory = interactor.GetComponent<PlayerInventory>();
+        if (inventory != null)
+            cachedPlayerInventory = inventory;
+
         if (inventory == null || !inventory.HasKeycard)
         {
             PlayLockedFeedback();
@@ -68,6 +71,9 @@ public class LockedDoor : MonoBehaviour, IInteractable
         if (isOpen)
             return string.Empty;
 
+        if (cachedPlayerInventory == null)
+            CachePlayerInventory();
+
         if (cachedPlayerInventory == null || !cachedPlayerInventory.HasKeycard)
             return "Need key to open";
 
@@ -79,9 +85,19 @@ public class LockedDoor : MonoBehaviour, IInteractable
         if (doorPivot != null)
             closedLocalRotation = doorPivot.localRotation;
 
-        var player = GameObject.FindGameObjectWithTag("Player");
-        if (player != null)
-            cachedPlayerInventory = player.GetComponent<PlayerInventory>();
+        CachePlayerInventory();
+    }
+
+    private void CachePlayerInventory()
+    {
+        foreach (PlayerInventory inventory in FindObjectsOfType<PlayerInventory>(true))
+        {
+            if (!inventory.CompareTag("Player"))
+                continue;
+
+            cachedPlayerInventory = inventory;
+            return;
+        }
     }
 
     private void UpdateLockedFeedback()

@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.XR;
 
 public class PlayerInteractor : MonoBehaviour
 {
@@ -15,6 +16,9 @@ public class PlayerInteractor : MonoBehaviour
 
     private void Update()
     {
+        if (VRDemoSimulator.IsDemoModeActive || IsXRInputActive())
+            return;
+
         focusedInteractable = FindFocusedInteractable();
         HandleInteractionDetection();
         HandleInteractionInput();
@@ -129,5 +133,15 @@ public class PlayerInteractor : MonoBehaviour
     private static bool IsLayerInMask(int layer, int mask)
     {
         return (mask & (1 << layer)) != 0;
+    }
+
+    private static bool IsXRInputActive()
+    {
+        if (XRSettings.isDeviceActive)
+            return true;
+
+        InputDevice headDevice = InputDevices.GetDeviceAtXRNode(XRNode.CenterEye);
+        InputDevice rightHandDevice = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
+        return headDevice.isValid || rightHandDevice.isValid;
     }
 }
