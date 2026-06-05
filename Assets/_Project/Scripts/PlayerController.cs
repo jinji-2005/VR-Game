@@ -110,6 +110,7 @@ public class PlayerController : MonoBehaviour
         float moveZ = Input.GetAxis("Vertical");
 
         float speed = isCrouching ? crouchSpeed : walkSpeed;
+        
         bool isSprinting = Input.GetKey(KeyCode.LeftShift) && !isCrouching;
         if (isSprinting)
             speed *= sprintMultiplier;
@@ -120,6 +121,7 @@ public class PlayerController : MonoBehaviour
         bool isMoving = move.magnitude > 0.2f;
         bool isRecentlyGrounded =
             Time.time - lastGroundedTime < groundedGraceTime;
+        bool canJump = characterController.isGrounded || isRecentlyGrounded;
         bool isAudibleMovement =
             !isCrouching &&
             isMoving &&
@@ -175,16 +177,18 @@ public class PlayerController : MonoBehaviour
             lastJumpPressTime = Time.time;
 
         if (characterController.isGrounded)
-        {
+        {   
+
             if (velocity.y < 0f)
                 velocity.y = -2f;
 
-            if (Time.time - lastJumpPressTime < 0.15f)
-            {
-                velocity.y = jumpForce;
-                lastJumpPressTime = float.MinValue;
-            }
         }
+        if (canJump && Time.time - lastJumpPressTime < 0.15f)
+        {
+            velocity.y = jumpForce;
+            lastJumpPressTime = float.MinValue;
+        }
+        
 
         velocity.y += gravity * Time.deltaTime;
         characterController.Move(velocity * Time.deltaTime);
