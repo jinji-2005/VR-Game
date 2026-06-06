@@ -42,6 +42,7 @@ public class PlayerController : MonoBehaviour
 
     public void StopAllNoise()
     {
+        IsProducingRunNoise = false;
         IsProducingFootstepNoise = false;
         MovementNoiseStrength = 0f;
 
@@ -50,6 +51,39 @@ public class PlayerController : MonoBehaviour
             runningAudioSource.Stop();
             runningAudioSource.volume = 0f;
         }
+    }
+
+    public void TeleportTo(
+        Vector3 worldPosition,
+        Quaternion worldRotation,
+        bool resetLookPitch = false
+    )
+    {
+        if (characterController == null)
+            characterController = GetComponent<CharacterController>();
+
+        StopAllNoise();
+        velocity = Vector3.zero;
+        lastJumpPressTime = float.MinValue;
+        lastGroundedTime = Time.time;
+
+        if (resetLookPitch)
+            pitch = 0f;
+
+        bool hadController = characterController != null;
+        bool wasEnabled = hadController && characterController.enabled;
+        if (hadController)
+            characterController.enabled = false;
+
+        transform.SetPositionAndRotation(worldPosition, worldRotation);
+
+        if (hadController)
+            characterController.enabled = wasEnabled;
+
+        if (cameraTransform != null)
+            cameraTransform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+
+        LimitCameraPlanarOffset();
     }
 
     private void Awake()
