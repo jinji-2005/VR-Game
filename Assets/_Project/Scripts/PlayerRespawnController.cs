@@ -469,9 +469,10 @@ public class PlayerRespawnController : MonoBehaviour
         go.transform.localPosition = Vector3.zero;
 
         ParticleSystem system = go.AddComponent<ParticleSystem>();
+        system.Stop(withChildren: true, ParticleSystemStopBehavior.StopEmittingAndClear);
         var main = system.main;
         main.loop = true;
-        main.playOnAwake = true;
+        main.playOnAwake = false;
         main.duration = 3f;
         main.startLifetime = new ParticleSystem.MinMaxCurve(1.8f, 3.2f);
         main.startSpeed = new ParticleSystem.MinMaxCurve(0.04f, 0.16f);
@@ -490,7 +491,10 @@ public class PlayerRespawnController : MonoBehaviour
 
         var velocity = system.velocityOverLifetime;
         velocity.enabled = true;
+        velocity.space = ParticleSystemSimulationSpace.Local;
+        velocity.x = new ParticleSystem.MinMaxCurve(0f, 0f);
         velocity.y = new ParticleSystem.MinMaxCurve(0.02f, 0.12f);
+        velocity.z = new ParticleSystem.MinMaxCurve(0f, 0f);
 
         var noise = system.noise;
         noise.enabled = true;
@@ -516,6 +520,7 @@ public class PlayerRespawnController : MonoBehaviour
         renderer.renderMode = ParticleSystemRenderMode.Billboard;
         renderer.sharedMaterial = GetCheckpointParticleTemplate();
 
+        system.Clear(withChildren: true);
         system.Play();
         return system;
     }
@@ -527,9 +532,10 @@ public class PlayerRespawnController : MonoBehaviour
         go.transform.localPosition = Vector3.down * 0.35f;
 
         ParticleSystem system = go.AddComponent<ParticleSystem>();
+        system.Stop(withChildren: true, ParticleSystemStopBehavior.StopEmittingAndClear);
         var main = system.main;
         main.loop = true;
-        main.playOnAwake = true;
+        main.playOnAwake = false;
         main.duration = 4f;
         main.startLifetime = new ParticleSystem.MinMaxCurve(2.6f, 4.2f);
         main.startSpeed = new ParticleSystem.MinMaxCurve(0.16f, 0.38f);
@@ -550,7 +556,10 @@ public class PlayerRespawnController : MonoBehaviour
 
         var velocity = system.velocityOverLifetime;
         velocity.enabled = true;
+        velocity.space = ParticleSystemSimulationSpace.Local;
+        velocity.x = new ParticleSystem.MinMaxCurve(0f, 0f);
         velocity.y = new ParticleSystem.MinMaxCurve(0.12f, 0.3f);
+        velocity.z = new ParticleSystem.MinMaxCurve(0f, 0f);
 
         var noise = system.noise;
         noise.enabled = true;
@@ -575,6 +584,7 @@ public class PlayerRespawnController : MonoBehaviour
         renderer.renderMode = ParticleSystemRenderMode.Billboard;
         renderer.sharedMaterial = GetCheckpointParticleTemplate();
 
+        system.Clear(withChildren: true);
         system.Play();
         return system;
     }
