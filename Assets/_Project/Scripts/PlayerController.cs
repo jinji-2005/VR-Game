@@ -22,6 +22,7 @@ public class PlayerController : MonoBehaviour
 
     [Header("Audio")]
     [SerializeField] private AudioSource runningAudioSource;
+    [SerializeField] private AudioSource jumpAudioSource;
 
     private CharacterController characterController;
     private Vector3 velocity;
@@ -221,6 +222,9 @@ public class PlayerController : MonoBehaviour
         {
             velocity.y = jumpForce;
             lastJumpPressTime = float.MinValue;
+
+            if (jumpAudioSource != null && jumpAudioSource.clip != null)
+                jumpAudioSource.PlayOneShot(jumpAudioSource.clip);
         }
         
 
