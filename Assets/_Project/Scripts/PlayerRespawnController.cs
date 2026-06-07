@@ -16,6 +16,9 @@ public class PlayerRespawnController : MonoBehaviour
         public float heightTolerance = 6f;
     }
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource deathAudioSource;
+
     [Header("Void Detection")]
     [SerializeField] private float hardRespawnY = -20f;
     [SerializeField] private float voidProbeDistance = 18f;
@@ -200,6 +203,9 @@ public class PlayerRespawnController : MonoBehaviour
 
     private void RespawnAtActiveCheckpoint()
     {
+        if (deathAudioSource != null && deathAudioSource.clip != null)
+            deathAudioSource.PlayOneShot(deathAudioSource.clip);
+
         voidTimer = 0f;
         respawnCooldownTimer = respawnCooldown;
 
