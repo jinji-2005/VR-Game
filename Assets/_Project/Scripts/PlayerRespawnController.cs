@@ -29,6 +29,9 @@ public class PlayerRespawnController : MonoBehaviour
 
     [Header("Respawn")]
     [SerializeField] private float respawnHeightOffset = 0.2f;
+    [SerializeField] private float respawnGroundProbeHeight = 3.5f;
+    [SerializeField] private float respawnGroundProbeDistance = 8f;
+    [SerializeField] private float respawnGroundProbeRadius = 0.24f;
     [SerializeField] private bool resetLookPitchOnRespawn = false;
     [SerializeField] private bool logCheckpointActivation = false;
 
@@ -218,7 +221,7 @@ public class PlayerRespawnController : MonoBehaviour
             targetRotation = activeCheckpointRotation;
         }
 
-        targetPosition.y += respawnHeightOffset;
+        targetPosition = ResolveRespawnPosition(targetPosition);
 
         if (playerController != null)
         {
@@ -242,6 +245,73 @@ public class PlayerRespawnController : MonoBehaviour
         }
 
         previousPosition = transform.position;
+    }
+
+    private Vector3 ResolveRespawnPosition(Vector3 checkpointPosition)
+    {
+        float centerYOffset = GetRespawnCenterYOffset();
+        float minimumRespawnY = checkpointPosition.y + centerYOffset;
+        float probeHeight = Mathf.Max(respawnGroundProbeHeight, centerYOffset + 0.5f);
+        float probeDistance = Mathf.Max(respawnGroundProbeDistance, centerYOffset + 2f);
+        Vector3 probeOrigin = checkpointPosition + Vector3.up * probeHeight;
+        float sphereRadius = GetRespawnProbeRadius();
+
+        if (Physics.SphereCast(
+                probeOrigin,
+                sphereRadius,
+                Vector3.down,
+                out RaycastHit hit,
+                probeHeight + probeDistance,
+                groundMask,
+                QueryTriggerInteraction.Ignore))
+        {
+            return new Vector3(
+                checkpointPosition.x,
+                Mathf.Max(hit.point.y + centerYOffset, minimumRespawnY),
+                checkpointPosition.z
+            );
+        }
+
+        if (Physics.Raycast(
+                probeOrigin,
+                Vector3.down,
+                out hit,
+                probeHeight + probeDistance,
+                groundMask,
+                QueryTriggerInteraction.Ignore))
+        {
+            return new Vector3(
+                checkpointPosition.x,
+                Mathf.Max(hit.point.y + centerYOffset, minimumRespawnY),
+                checkpointPosition.z
+            );
+        }
+
+        return new Vector3(
+            checkpointPosition.x,
+            minimumRespawnY,
+            checkpointPosition.z
+        );
+    }
+
+    private float GetRespawnCenterYOffset()
+    {
+        if (characterController == null)
+            return 1f + respawnHeightOffset;
+
+        return (characterController.height * 0.5f) - characterController.center.y + respawnHeightOffset;
+    }
+
+    private float GetRespawnProbeRadius()
+    {
+        if (characterController == null)
+            return Mathf.Max(respawnGroundProbeRadius, 0.08f);
+
+        return Mathf.Clamp(
+            respawnGroundProbeRadius,
+            0.08f,
+            Mathf.Max(0.08f, characterController.radius * 0.9f)
+        );
     }
 
     private Vector3 GetGroundProbeOrigin()
@@ -281,37 +351,23 @@ public class PlayerRespawnController : MonoBehaviour
             new RespawnCheckpoint
             {
                 name = "Spawn Walkway",
-                position = new Vector3(60.28f, 79f, 171.05f),
+                position = new Vector3(-4.84f, 31.66f, -119.39f),
                 activationRadius = 10f,
                 heightTolerance = 8f
             },
             new RespawnCheckpoint
             {
+                name = "Lower Drawers",
+                position = new Vector3(8.22f, 39.25f, 93.59f),
+                activationRadius = 14f,
+                heightTolerance = 10f
+            },
+            new RespawnCheckpoint
+            {
                 name = "Wreckage Span",
-                position = new Vector3(37.191315f, 76.57667f, 197.18898f),
-                activationRadius = 12f,
-                heightTolerance = 8f
-            },
-            new RespawnCheckpoint
-            {
-                name = "Upper Building",
-                position = new Vector3(22.637192f, 75.943924f, 268.43954f),
-                activationRadius = 12f,
-                heightTolerance = 8f
-            },
-            new RespawnCheckpoint
-            {
-                name = "Far Platform",
-                position = new Vector3(95.25f, 69.07f, 255.19f),
-                activationRadius = 11f,
-                heightTolerance = 8f
-            },
-            new RespawnCheckpoint
-            {
-                name = "End Platform",
-                position = new Vector3(143.59f, 70.52f, 252.03f),
-                activationRadius = 11f,
-                heightTolerance = 8f
+                position = new Vector3(26.45f, 93.1f, 212.03f),
+                activationRadius = 14f,
+                heightTolerance = 10f
             }
         };
     }
