@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Key
   - Player
+  - Activator
   layers:
   - Default
   - TransparentFX

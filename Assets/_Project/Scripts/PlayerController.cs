@@ -23,6 +23,7 @@ public class PlayerController : MonoBehaviour
 
     [Header("Audio")]
     [SerializeField] private AudioSource runningAudioSource;
+    [SerializeField] private AudioSource jumpAudioSource;
 
     [Header("XR")]
     [SerializeField] private bool disableDesktopInputWhenXRActive = true;
@@ -49,6 +50,52 @@ public class PlayerController : MonoBehaviour
     public bool IsProducingFootstepNoise { get; private set; }
     public float MovementNoiseStrength { get; private set; }
     public bool IsCrouching => isCrouching;
+
+    public void StopAllNoise()
+    {
+        IsProducingRunNoise = false;
+        IsProducingFootstepNoise = false;
+        MovementNoiseStrength = 0f;
+
+        if (runningAudioSource != null)
+        {
+            runningAudioSource.Stop();
+            runningAudioSource.volume = 0f;
+        }
+    }
+
+    public void TeleportTo(
+        Vector3 worldPosition,
+        Quaternion worldRotation,
+        bool resetLookPitch = false
+    )
+    {
+        if (characterController == null)
+            characterController = GetComponent<CharacterController>();
+
+        StopAllNoise();
+        velocity = Vector3.zero;
+        lastJumpPressTime = float.MinValue;
+        lastGroundedTime = Time.time;
+
+        if (resetLookPitch)
+            pitch = 0f;
+
+        bool hadController = characterController != null;
+        bool wasEnabled = hadController && characterController.enabled;
+        if (hadController)
+            characterController.enabled = false;
+
+        transform.SetPositionAndRotation(worldPosition, worldRotation);
+
+        if (hadController)
+            characterController.enabled = wasEnabled;
+
+        if (cameraTransform != null)
+            cameraTransform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+
+        LimitCameraPlanarOffset();
+    }
 
     private void Awake()
     {
@@ -120,6 +167,7 @@ public class PlayerController : MonoBehaviour
         float moveZ = Input.GetAxis("Vertical");
 
         float speed = isCrouching ? crouchSpeed : walkSpeed;
+        
         bool isSprinting = Input.GetKey(KeyCode.LeftShift) && !isCrouching;
         if (isSprinting)
             speed *= sprintMultiplier;
@@ -130,6 +178,7 @@ public class PlayerController : MonoBehaviour
         bool isMoving = move.magnitude > 0.2f;
         bool isRecentlyGrounded =
             Time.time - lastGroundedTime < groundedGraceTime;
+        bool canJump = characterController.isGrounded || isRecentlyGrounded;
         bool isAudibleMovement =
             !isCrouching &&
             isMoving &&
@@ -185,16 +234,21 @@ public class PlayerController : MonoBehaviour
             lastJumpPressTime = Time.time;
 
         if (characterController.isGrounded)
-        {
+        {   
+
             if (velocity.y < 0f)
                 velocity.y = -2f;
 
-            if (Time.time - lastJumpPressTime < 0.15f)
-            {
-                velocity.y = jumpForce;
-                lastJumpPressTime = float.MinValue;
-            }
         }
+        if (canJump && Time.time - lastJumpPressTime < 0.15f)
+        {
+            velocity.y = jumpForce;
+            lastJumpPressTime = float.MinValue;
+
+            if (jumpAudioSource != null && jumpAudioSource.clip != null)
+                jumpAudioSource.PlayOneShot(jumpAudioSource.clip);
+        }
+        
 
         velocity.y += gravity * Time.deltaTime;
         characterController.Move(velocity * Time.deltaTime);

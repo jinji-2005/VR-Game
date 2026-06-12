@@ -361,6 +361,14 @@ public static class XRLevel0SetupTool
 
         if (useOfficialRig && !hasOfficialRig)
         {
+            TryCreateRuntimeOfficialRigForPreview(levelName);
+            officialSetup = FindSceneRootStartingWith("XR Interaction Setup");
+            simulator = FindSceneRootStartingWith("XR Device Simulator");
+            hasOfficialRig = officialSetup != null && simulator != null;
+        }
+
+        if (useOfficialRig && !hasOfficialRig)
+        {
             if (desktopPlayer != null)
                 desktopPlayer.SetActive(true);
 
@@ -390,6 +398,27 @@ public static class XRLevel0SetupTool
 
         if (useOfficialRig && !hasOfficialRig)
             Debug.LogWarning($"Official XRI preview is selected, but {levelName} does not contain the official XRI setup or simulator. Run VR Game/XR/Configure Official XRI Rig in {levelName} (Persistent Setup).");
+    }
+
+    private static void TryCreateRuntimeOfficialRigForPreview(string levelName)
+    {
+        GameObject desktopPlayer = FindDesktopPlayerInScene();
+        if (desktopPlayer == null)
+            return;
+
+        EnsureXRIStarterAssetsImported();
+        EnsureXRIDeviceSimulatorImported();
+
+        GameObject officialSetup = EnsureOfficialXRISetupInScene();
+        GameObject simulator = EnsureOfficialXRDeviceSimulatorInScene();
+        if (officialSetup == null || simulator == null)
+            return;
+
+        officialSetup.transform.SetPositionAndRotation(desktopPlayer.transform.position, desktopPlayer.transform.rotation);
+        ConfigureOfficialXRIIntegration(officialSetup, desktopPlayer);
+        EnsureOfficialInteractablesForExistingGameplay();
+
+        Debug.Log($"{levelName} runtime official XRI preview rig created for this Play Mode session.");
     }
 
     private static void SetXRDeviceSimulatorInputEnabled(GameObject simulator, bool enabled)
