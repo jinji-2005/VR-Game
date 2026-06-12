@@ -16,11 +16,12 @@ public class DeathTrigger : MonoBehaviour
     private bool hasTriggered;
     private PlayerController playerController;
     private XRIOfficialPlayerTuning xriPlayerTuning;
+    private XRIHybridDemoDriver xriHybridDemoDriver;
     private CharacterController playerCharacterController;
 
     private void Update()
     {
-        if (player == null)
+        if (player == null || !player.activeInHierarchy)
             ResolvePlayer();
 
         if (hasTriggered || player == null)
@@ -51,6 +52,11 @@ public class DeathTrigger : MonoBehaviour
 
         if (xriPlayerTuning != null)
             xriPlayerTuning.DisableLocomotion();
+
+        if (xriHybridDemoDriver != null)
+            xriHybridDemoDriver.FreezeForDeath();
+
+        XRIHybridDemoDriver.FreezeActiveForDeath();
 
         if (deathOverlay != null)
             deathOverlay.SetActive(true);
@@ -86,6 +92,9 @@ public class DeathTrigger : MonoBehaviour
         {
             player = activeXriPlayer.PlayerTarget;
             xriPlayerTuning = activeXriPlayer;
+            xriHybridDemoDriver = activeXriPlayer.GetComponent<XRIHybridDemoDriver>() ??
+                activeXriPlayer.GetComponentInParent<XRIHybridDemoDriver>() ??
+                activeXriPlayer.GetComponentInChildren<XRIHybridDemoDriver>(true);
             playerCharacterController = activeXriPlayer.BodyController;
             return;
         }
@@ -97,6 +106,7 @@ public class DeathTrigger : MonoBehaviour
         player = taggedPlayer;
         playerController = taggedPlayer.GetComponent<PlayerController>();
         xriPlayerTuning = taggedPlayer.GetComponentInParent<XRIOfficialPlayerTuning>();
+        xriHybridDemoDriver = taggedPlayer.GetComponentInParent<XRIHybridDemoDriver>();
         playerCharacterController = taggedPlayer.GetComponent<CharacterController>();
     }
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using TMPro;
 using UnityEditor;
 using UnityEditor.PackageManager.UI;
 using UnityEditor.SceneManagement;
@@ -12,15 +13,18 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Management;
 using UnityEngine.XR.OpenXR;
 using UnityEngine.XR.OpenXR.Features;
 using UnityEngine.XR.OpenXR.Features.Interactions;
 
+[InitializeOnLoad]
 public static class XRLevel0SetupTool
 {
     private const string ScenePath = "Assets/_Project/Scenes/Level0.unity";
+    private const string Level45ScenePath = "Assets/_Project/Scenes/Level45/Level45.unity";
     private const string OutputPath = "Logs/VRRuntimeValidation.json";
     private const string RayMaterialPath = "Assets/_Project/Materials/M_VR_Ray.mat";
     private const string ControllerMaterialPath = "Assets/_Project/Materials/M_XRI_Controller_Demo.mat";
@@ -35,6 +39,19 @@ public static class XRLevel0SetupTool
     private const string XRIOfficialPreviewSetupName = "XR Interaction Setup (Official Preview)";
     private const string XRIOfficialPreviewSimulatorName = "XR Device Simulator (Official Preview)";
     private const string XRIRightActivateActionPath = "XRI RightHand Interaction/Activate";
+    private const string PreferredModeKeyPrefix = "VRGame.Scene.PreferredPlayMode.";
+    private const string Level0PreferredModeKey = "VRGame.Level0.PreferredPlayMode";
+    private const string Level0KeyboardModeValue = "Keyboard";
+    private const string Level0OfficialXRIModeValue = "OfficialXRI";
+    private const string Level0HybridXRIModeValue = "HybridXRI";
+
+    static XRLevel0SetupTool()
+    {
+        EditorApplication.playModeStateChanged -= HandlePlayModeStateChanged;
+        EditorApplication.playModeStateChanged += HandlePlayModeStateChanged;
+        SceneManager.sceneLoaded -= HandleSceneLoaded;
+        SceneManager.sceneLoaded += HandleSceneLoaded;
+    }
 
     [MenuItem("VR Game/XR/Configure Level0 VR Rig")]
     public static void ConfigureLevel0ForVR()
@@ -150,17 +167,57 @@ public static class XRLevel0SetupTool
         Debug.Log("Level0 VR rig configured with XRI controller models, Trigger input bridge, and optional XR Device Simulator.");
     }
 
+    [MenuItem("VR Game/XR/Configure Official XRI Rig in Level0 (Persistent Setup)")]
+    public static void ConfigureOfficialXRIRigInLevel0()
+    {
+        ConfigureOfficialXRIRigInScene(ScenePath, "Level0");
+    }
+
+    [MenuItem("VR Game/XR/Configure Official XRI Rig in Level45 (Persistent Setup)")]
+    public static void ConfigureOfficialXRIRigInLevel45()
+    {
+        ConfigureOfficialXRIRigInScene(Level45ScenePath, "Level45");
+    }
+
     [MenuItem("VR Game/XR/Preview Official XRI Rig in Level0")]
     public static void PreviewOfficialXRIRigInLevel0()
     {
+        SetPreferredLevel0PlayMode(Level0OfficialXRIModeValue);
+        Debug.Log("Level0 will use the official XRI rig during Play Mode. This preference does not modify or save the scene.");
+    }
+
+    [MenuItem("VR Game/XR/Preview Hybrid XRI Demo in Level0")]
+    public static void PreviewHybridXRIDemoInLevel0()
+    {
+        SetPreferredLevel0PlayMode(Level0HybridXRIModeValue);
+        Debug.Log("Level0 will use the official XRI rig visuals with simplified keyboard/mouse demo controls during Play Mode. This preference does not modify or save the scene.");
+    }
+
+    [MenuItem("VR Game/XR/Preview Official XRI Rig in Level45")]
+    public static void PreviewOfficialXRIRigInLevel45()
+    {
+        SetPreferredPlayMode(Level45ScenePath, Level0OfficialXRIModeValue);
+        Debug.Log("Level45 will use the official XRI rig during Play Mode. This preference does not modify or save the scene.");
+    }
+
+    [MenuItem("VR Game/XR/Preview Hybrid XRI Demo in Level45")]
+    public static void PreviewHybridXRIDemoInLevel45()
+    {
+        SetPreferredPlayMode(Level45ScenePath, Level0HybridXRIModeValue);
+        Debug.Log("Level45 will use the official XRI rig visuals with simplified keyboard/mouse demo controls during Play Mode. This preference does not modify or save the scene.");
+    }
+
+    private static void ConfigureOfficialXRIRigInScene(string scenePath, string levelName)
+    {
         if (Application.isPlaying)
         {
-            Debug.LogError("Stop Play mode first, then enable the official XRI preview rig.");
+            Debug.LogError("Stop Play mode first, then configure the official XRI rig.");
             return;
         }
 
         ConfigureOpenXRForStandalone();
-        EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+        EnsureSceneInBuildSettings(scenePath);
         EnsureXRIStarterAssetsImported();
         EnsureXRIDeviceSimulatorImported();
 
@@ -175,45 +232,180 @@ public static class XRLevel0SetupTool
 
         if (desktopPlayer != null)
         {
+            desktopPlayer.tag = "Player";
             officialSetup.transform.SetPositionAndRotation(desktopPlayer.transform.position, desktopPlayer.transform.rotation);
             ConfigureOfficialXRIIntegration(officialSetup, desktopPlayer);
             EnsureOfficialInteractablesForExistingGameplay();
-            desktopPlayer.SetActive(false);
+        }
+        else
+        {
+            Debug.LogWarning($"{levelName} does not contain a desktop PlayerController root. The official XRI rig was created, but hybrid controls could not copy desktop movement settings.");
         }
 
-        officialSetup.SetActive(true);
-        simulator.SetActive(true);
         EditorSceneManager.SaveScene(SceneManager.GetActiveScene());
         AssetDatabase.SaveAssets();
-        Debug.Log("Official XRI preview enabled in Level0. This uses the unmodified XR Interaction Setup and XR Device Simulator prefabs. Run VR Game/XR/Restore Existing Player Mode to return to the keyboard player.");
+        Debug.Log($"Official XRI rig configured in {levelName}. Use the {levelName} Preview Hybrid/Official menu item, or restore keyboard mode, to choose the next Play Mode without saving scene state.");
     }
 
     [MenuItem("VR Game/XR/Restore Existing Player Mode")]
     public static void RestoreExistingPlayerMode()
     {
-        if (Application.isPlaying)
-        {
-            Debug.LogError("Stop Play mode first, then restore the existing player mode.");
+        SetPreferredLevel0PlayMode(Level0KeyboardModeValue);
+        Debug.Log("Level0 will use the existing keyboard player during Play Mode. This preference does not modify or save the scene.");
+    }
+
+    [MenuItem("VR Game/XR/Restore Existing Player Mode in Level45")]
+    public static void RestoreExistingPlayerModeInLevel45()
+    {
+        SetPreferredPlayMode(Level45ScenePath, Level0KeyboardModeValue);
+        Debug.Log("Level45 will use the existing keyboard player during Play Mode. This preference does not modify or save the scene.");
+    }
+
+    private static void HandlePlayModeStateChanged(PlayModeStateChange state)
+    {
+        if (state != PlayModeStateChange.EnteredPlayMode)
             return;
+
+        if (!IsSupportedPreviewScene(SceneManager.GetActiveScene().path))
+            return;
+
+        ApplyPreferredLevelPlayModeInPlay();
+    }
+
+    private static void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (!Application.isPlaying)
+            return;
+
+        if (!IsSupportedPreviewScene(scene.path))
+            return;
+
+        EditorApplication.delayCall += ApplyPreferredLevelPlayModeInPlay;
+    }
+
+    private static void SetPreferredLevel0PlayMode(string mode)
+    {
+        SetPreferredPlayMode(ScenePath, mode);
+        EditorPrefs.SetString(Level0PreferredModeKey, mode);
+    }
+
+    private static void SetPreferredPlayMode(string scenePath, string mode)
+    {
+        EditorPrefs.SetString(GetPreferredPlayModeKey(scenePath), mode);
+    }
+
+    private static string GetPreferredPlayMode(string scenePath)
+    {
+        string key = GetPreferredPlayModeKey(scenePath);
+        if (EditorPrefs.HasKey(key))
+            return EditorPrefs.GetString(key, Level0KeyboardModeValue);
+
+        if (string.Equals(scenePath, ScenePath, StringComparison.OrdinalIgnoreCase) &&
+            EditorPrefs.HasKey(Level0PreferredModeKey))
+        {
+            return EditorPrefs.GetString(Level0PreferredModeKey, Level0KeyboardModeValue);
         }
 
-        EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        return Level0KeyboardModeValue;
+    }
+
+    private static string GetPreferredPlayModeKey(string scenePath)
+    {
+        return PreferredModeKeyPrefix + scenePath.Replace('/', '.').Replace('\\', '.');
+    }
+
+    private static bool IsSupportedPreviewScene(string scenePath)
+    {
+        return string.Equals(scenePath, ScenePath, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(scenePath, Level45ScenePath, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void EnsureSceneInBuildSettings(string scenePath)
+    {
+        EditorBuildSettingsScene[] scenes = EditorBuildSettings.scenes;
+        foreach (EditorBuildSettingsScene scene in scenes)
+        {
+            if (string.Equals(scene.path, scenePath, StringComparison.OrdinalIgnoreCase))
+                return;
+        }
+
+        EditorBuildSettingsScene[] newScenes = new EditorBuildSettingsScene[scenes.Length + 1];
+        scenes.CopyTo(newScenes, 0);
+        newScenes[scenes.Length] = new EditorBuildSettingsScene(scenePath, true);
+        EditorBuildSettings.scenes = newScenes;
+    }
+
+    private static void ApplyPreferredLevelPlayModeInPlay()
+    {
+        if (!Application.isPlaying)
+            return;
+
+        string scenePath = SceneManager.GetActiveScene().path;
+        if (!IsSupportedPreviewScene(scenePath))
+            return;
+
+        ApplyLevelPlayMode(scenePath, GetPreferredPlayMode(scenePath));
+    }
+
+    private static void ApplyLevelPlayMode(string scenePath, string mode)
+    {
+        bool useOfficialXRI = string.Equals(mode, Level0OfficialXRIModeValue, StringComparison.Ordinal);
+        bool useHybridXRI = string.Equals(mode, Level0HybridXRIModeValue, StringComparison.Ordinal);
+        bool useOfficialRig = useOfficialXRI || useHybridXRI;
+        string levelName = Path.GetFileNameWithoutExtension(scenePath);
+
         GameObject desktopPlayer = FindDesktopPlayerInScene();
         GameObject officialSetup = FindSceneRootStartingWith("XR Interaction Setup");
         GameObject simulator = FindSceneRootStartingWith("XR Device Simulator");
+        bool hasOfficialRig = officialSetup != null && simulator != null;
+
+        if (useOfficialRig && !hasOfficialRig)
+        {
+            if (desktopPlayer != null)
+                desktopPlayer.SetActive(true);
+
+            Debug.LogWarning($"Official XRI preview is selected, but {levelName} does not contain the official XRI setup or simulator. Keeping the existing keyboard player active. Run VR Game/XR/Configure Official XRI Rig in {levelName} (Persistent Setup), then enter Play Mode again.");
+            return;
+        }
 
         if (desktopPlayer != null)
-            desktopPlayer.SetActive(true);
+            desktopPlayer.SetActive(!useOfficialRig);
 
         if (officialSetup != null)
-            officialSetup.SetActive(false);
+        {
+            officialSetup.SetActive(useOfficialRig);
+            XRIHybridDemoDriver hybridDriver = officialSetup.GetComponent<XRIHybridDemoDriver>();
+            if (hybridDriver == null && useHybridXRI)
+                hybridDriver = officialSetup.AddComponent<XRIHybridDemoDriver>();
+
+            if (hybridDriver != null)
+                hybridDriver.enabled = useHybridXRI;
+        }
 
         if (simulator != null)
-            simulator.SetActive(false);
+        {
+            simulator.SetActive(useOfficialRig);
+            SetXRDeviceSimulatorInputEnabled(simulator, !useHybridXRI);
+        }
 
-        EditorSceneManager.SaveScene(SceneManager.GetActiveScene());
-        AssetDatabase.SaveAssets();
-        Debug.Log("Existing keyboard and VR demo player restored in Level0. The official XRI preview objects remain available but disabled.");
+        if (useOfficialRig && !hasOfficialRig)
+            Debug.LogWarning($"Official XRI preview is selected, but {levelName} does not contain the official XRI setup or simulator. Run VR Game/XR/Configure Official XRI Rig in {levelName} (Persistent Setup).");
+    }
+
+    private static void SetXRDeviceSimulatorInputEnabled(GameObject simulator, bool enabled)
+    {
+        foreach (MonoBehaviour behaviour in simulator.GetComponentsInChildren<MonoBehaviour>(true))
+        {
+            if (behaviour == null)
+                continue;
+
+            Type behaviourType = behaviour.GetType();
+            if (string.Equals(behaviourType.Name, "XRDeviceSimulator", StringComparison.Ordinal) ||
+                string.Equals(behaviourType.FullName, "UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation.XRDeviceSimulator", StringComparison.Ordinal))
+            {
+                behaviour.enabled = enabled;
+            }
+        }
     }
 
     private static void EnsureXRIStarterAssetsImported()
@@ -376,10 +568,12 @@ public static class XRLevel0SetupTool
 
     private static void ConfigureOfficialXRIIntegration(GameObject officialSetup, GameObject desktopPlayer)
     {
+        ConfigureDesktopPlayerIntegration(desktopPlayer);
+
         PlayerController desktopController = desktopPlayer.GetComponent<PlayerController>();
         CharacterController desktopCharacter = desktopPlayer.GetComponent<CharacterController>();
         InputActionAsset actions = FindImportedXRIInputActions();
-        InteractionPrompt prompt = FindPrompt();
+        InteractionPrompt prompt = FindOrCreatePrompt();
 
         XRRayInteractor leftHandRay = FindHandRayInteractor(officialSetup, "Left");
         ActionBasedController leftHandController = leftHandRay != null
@@ -441,8 +635,79 @@ public static class XRLevel0SetupTool
         }
         tuningSo.ApplyModifiedProperties();
 
+        XRIHybridDemoDriver hybridDriver = EnsureComponent<XRIHybridDemoDriver>(officialSetup);
+        hybridDriver.enabled = false;
+        SerializedObject hybridSo = new SerializedObject(hybridDriver);
+        SetObject(hybridSo, "bodyController", xriCharacter);
+        SetObject(hybridSo, "xriCamera", xriCamera);
+        SetObject(hybridSo, "leftHandController", leftHandController);
+        SetObject(hybridSo, "rightHandController", rightHandController);
+        SetObject(hybridSo, "leftHandTransform", leftHandController != null ? leftHandController.transform : null);
+        SetObject(hybridSo, "rightHandTransform", rightHandController != null ? rightHandController.transform : null);
+        SetObject(hybridSo, "interactableBridge", bridge);
+        SetObject(hybridSo, "interactionOwner", desktopPlayer);
+        SetObject(hybridSo, "leftControllerVisualPrefab", FindImportedXRIControllerPrefab("XR Controller Left"));
+        SetObject(hybridSo, "rightControllerVisualPrefab", FindImportedXRIControllerPrefab("XR Controller Right"));
+        if (desktopController != null)
+        {
+            SetFloat(hybridSo, "walkSpeed", desktopController.WalkSpeed);
+            SetFloat(hybridSo, "sprintMultiplier", desktopController.SprintMultiplier);
+            SetFloat(hybridSo, "gravity", desktopController.Gravity);
+            SetFloat(hybridSo, "jumpForce", desktopController.JumpForce);
+            SetFloat(hybridSo, "crouchHeight", desktopController.CrouchHeight);
+            SetFloat(hybridSo, "crouchSpeed", desktopController.CrouchSpeed);
+        }
+        hybridSo.ApplyModifiedProperties();
+
         if (rightHandRay == null || rightHandController == null || leftHandRay == null || leftHandController == null)
             Debug.LogWarning("One or more official XRI hand rays/controllers were not found. Key and door Trigger bridging may be incomplete.");
+    }
+
+    private static void ConfigureDesktopPlayerIntegration(GameObject desktopPlayer)
+    {
+        if (desktopPlayer == null)
+            return;
+
+        desktopPlayer.tag = "Player";
+
+        CharacterController characterController = EnsureComponent<CharacterController>(desktopPlayer);
+        characterController.radius = Mathf.Max(characterController.radius, 0.32f);
+        characterController.height = Mathf.Max(characterController.height, 1.7f);
+        characterController.center = new Vector3(
+            characterController.center.x,
+            Mathf.Approximately(characterController.center.y, 0f) ? characterController.height * 0.5f : characterController.center.y,
+            characterController.center.z);
+
+        Camera playerCamera = desktopPlayer.GetComponentInChildren<Camera>(true);
+        if (playerCamera == null)
+        {
+            GameObject cameraGo = new GameObject("Main Camera", typeof(Camera), typeof(AudioListener));
+            cameraGo.transform.SetParent(desktopPlayer.transform, false);
+            cameraGo.transform.localPosition = new Vector3(0f, 1.65f, 0f);
+            playerCamera = cameraGo.GetComponent<Camera>();
+        }
+
+        playerCamera.name = "Main Camera";
+        playerCamera.tag = "MainCamera";
+        playerCamera.stereoTargetEye = StereoTargetEyeMask.Both;
+        playerCamera.nearClipPlane = 0.05f;
+
+        InteractionPrompt prompt = FindOrCreatePrompt();
+        PlayerController desktopController = EnsureComponent<PlayerController>(desktopPlayer);
+        SerializedObject desktopSo = new SerializedObject(desktopController);
+        SetObject(desktopSo, "cameraTransform", playerCamera.transform);
+        SetBool(desktopSo, "disableDesktopInputWhenXRActive", true);
+        desktopSo.ApplyModifiedProperties();
+
+        PlayerInteractor desktopInteractor = EnsureComponent<PlayerInteractor>(desktopPlayer);
+        SerializedObject interactorSo = new SerializedObject(desktopInteractor);
+        SetObject(interactorSo, "cameraTransform", playerCamera.transform);
+        SetObject(interactorSo, "prompt", prompt);
+        SetLayerMask(interactorSo, "interactionMask", ~0);
+        SetLayerMask(interactorSo, "blockingMask", ~0);
+        interactorSo.ApplyModifiedProperties();
+
+        EnsureComponent<PlayerInventory>(desktopPlayer);
     }
 
     private static XRRayInteractor FindHandRayInteractor(GameObject officialSetup, string handedness)
@@ -505,7 +770,6 @@ public static class XRLevel0SetupTool
         EditorApplication.Exit(result.Errors.Count > 0 ? 1 : 0);
     }
 
-    [MenuItem("VR Game/XR/Validate Level0 VR Rig")]
     public static void ValidateLevel0VRFromMenu()
     {
         ValidationResult result = ValidateLevel0VR();
@@ -665,6 +929,110 @@ public static class XRLevel0SetupTool
 
         GameObject promptGo = GameObject.Find("PromptText");
         return promptGo != null ? promptGo.GetComponent<InteractionPrompt>() : null;
+    }
+
+    private static InteractionPrompt FindOrCreatePrompt()
+    {
+        InteractionPrompt prompt = FindPrompt();
+        if (prompt == null)
+        {
+            GameObject promptGo = CreatePromptUI();
+            prompt = EnsureComponent<InteractionPrompt>(promptGo);
+        }
+
+        ConfigurePromptReferences(prompt);
+        return prompt;
+    }
+
+    private static void ConfigurePromptReferences(InteractionPrompt prompt)
+    {
+        if (prompt == null)
+            return;
+
+        SerializedObject promptSo = new SerializedObject(prompt);
+        Transform hintPanel = prompt.transform.Find("HintPanel");
+        if (hintPanel != null)
+            SetObject(promptSo, "hintPanel", hintPanel.gameObject);
+
+        TextMeshProUGUI hintText = hintPanel != null
+            ? hintPanel.Find("HintText")?.GetComponent<TextMeshProUGUI>()
+            : null;
+        if (hintText != null)
+            SetObject(promptSo, "hintText", hintText);
+
+        Image crosshair = prompt.transform.Find("Crosshair")?.GetComponent<Image>();
+        if (crosshair != null)
+            SetObject(promptSo, "Crosshair", crosshair);
+
+        promptSo.ApplyModifiedProperties();
+    }
+
+    private static GameObject CreatePromptUI()
+    {
+        int uiLayer = GetUILayer();
+        GameObject canvasGo = new GameObject("InteractionCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+        canvasGo.layer = uiLayer;
+
+        Canvas canvas = canvasGo.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+
+        CanvasScaler scaler = canvasGo.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(800, 600);
+
+        GameObject promptGo = new GameObject("PromptText", typeof(RectTransform));
+        promptGo.layer = uiLayer;
+        promptGo.transform.SetParent(canvasGo.transform, false);
+
+        RectTransform promptRect = promptGo.GetComponent<RectTransform>();
+        promptRect.anchorMin = new Vector2(0.5f, 0.5f);
+        promptRect.anchorMax = new Vector2(0.5f, 0.5f);
+        promptRect.anchoredPosition = new Vector2(0f, -120f);
+        promptRect.sizeDelta = Vector2.zero;
+
+        GameObject crosshairGo = new GameObject("Crosshair", typeof(RectTransform), typeof(Image));
+        crosshairGo.layer = uiLayer;
+        crosshairGo.transform.SetParent(promptGo.transform, false);
+        RectTransform crosshairRect = crosshairGo.GetComponent<RectTransform>();
+        crosshairRect.anchorMin = new Vector2(0.5f, 0.5f);
+        crosshairRect.anchorMax = new Vector2(0.5f, 0.5f);
+        crosshairRect.anchoredPosition = new Vector2(0f, 120f);
+        crosshairRect.sizeDelta = new Vector2(6f, 6f);
+        crosshairGo.GetComponent<Image>().color = new Color(1f, 1f, 1f, 0.55f);
+
+        GameObject hintPanelGo = new GameObject("HintPanel", typeof(RectTransform), typeof(Image), typeof(HorizontalLayoutGroup), typeof(ContentSizeFitter));
+        hintPanelGo.layer = uiLayer;
+        hintPanelGo.transform.SetParent(promptGo.transform, false);
+
+        RectTransform hintPanelRect = hintPanelGo.GetComponent<RectTransform>();
+        hintPanelRect.anchorMin = new Vector2(0.5f, 0.5f);
+        hintPanelRect.anchorMax = new Vector2(0.5f, 0.5f);
+        hintPanelRect.anchoredPosition = Vector2.zero;
+
+        hintPanelGo.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.6f);
+        HorizontalLayoutGroup layout = hintPanelGo.GetComponent<HorizontalLayoutGroup>();
+        layout.padding = new RectOffset(12, 12, 6, 6);
+        layout.childAlignment = TextAnchor.MiddleCenter;
+
+        ContentSizeFitter fitter = hintPanelGo.GetComponent<ContentSizeFitter>();
+        fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        GameObject hintTextGo = new GameObject("HintText", typeof(RectTransform), typeof(TextMeshProUGUI));
+        hintTextGo.layer = uiLayer;
+        hintTextGo.transform.SetParent(hintPanelGo.transform, false);
+        TextMeshProUGUI text = hintTextGo.GetComponent<TextMeshProUGUI>();
+        text.alignment = TextAlignmentOptions.Center;
+        text.fontSize = 24;
+        text.color = Color.white;
+
+        return promptGo;
+    }
+
+    private static int GetUILayer()
+    {
+        int layer = LayerMask.NameToLayer("UI");
+        return layer >= 0 ? layer : 0;
     }
 
     private static Transform EnsureChild(Transform parent, string name, Vector3 localPosition)

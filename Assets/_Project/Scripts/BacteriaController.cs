@@ -154,9 +154,6 @@ public class BacteriaController : MonoBehaviour
 
     private void CachePlayerReference(bool forceSearch = false)
     {
-        if (playerTarget != null)
-            return;
-
         if (!forceSearch && Time.time < nextPlayerSearchTime)
             return;
 
@@ -166,9 +163,14 @@ public class BacteriaController : MonoBehaviour
         if (activeXriPlayer != null && activeXriPlayer.isActiveAndEnabled &&
             activeXriPlayer.PlayerTarget != null && activeXriPlayer.PlayerTarget.activeInHierarchy)
         {
-            BindPlayerTarget(activeXriPlayer.PlayerTarget, activeXriPlayer);
+            if (playerTarget != activeXriPlayer.PlayerTarget || xriPlayerTuning != activeXriPlayer)
+                BindPlayerTarget(activeXriPlayer.PlayerTarget, activeXriPlayer);
+
             return;
         }
+
+        if (playerTarget != null)
+            return;
 
         GameObject taggedPlayer = GameObject.FindGameObjectWithTag(playerTag);
         if (taggedPlayer != null)
@@ -515,7 +517,7 @@ public class BacteriaController : MonoBehaviour
             return true;
 
         if (Physics.SphereCast(origin, collisionProbeRadius * 0.6f, dir.normalized, out RaycastHit hit, distance, obstacleMask, QueryTriggerInteraction.Ignore))
-            return hit.collider.CompareTag(playerTag);
+            return hit.collider.CompareTag(playerTag) || hit.collider.transform.IsChildOf(playerTarget.transform);
 
         return true;
     }

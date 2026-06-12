@@ -17,18 +17,20 @@ public class XRIOfficialInteractableBridge : MonoBehaviour
     [SerializeField] private float floorBlockNormalY = 0.6f;
 
     private IInteractable focusedInteractable;
+    private Transform priorityRayOriginOverride;
 
     private void Update()
     {
+        IInteractable overrideFocusedInteractable = FindFocusedInteractable(priorityRayOriginOverride);
         IInteractable rightFocusedInteractable = FindFocusedInteractable(rightHandRayInteractor);
         IInteractable leftFocusedInteractable = FindFocusedInteractable(leftHandRayInteractor);
-        focusedInteractable = rightFocusedInteractable ?? leftFocusedInteractable;
+        focusedInteractable = overrideFocusedInteractable ?? rightFocusedInteractable ?? leftFocusedInteractable;
         UpdatePrompt();
 
         if (rightFocusedInteractable != null && WasTriggered(rightHandController))
-            rightFocusedInteractable.Interact(interactionOwner != null ? interactionOwner : gameObject);
+            rightFocusedInteractable.Interact(ResolveInteractionOwner(null));
         else if (leftFocusedInteractable != null && WasTriggered(leftHandController))
-            leftFocusedInteractable.Interact(interactionOwner != null ? interactionOwner : gameObject);
+            leftFocusedInteractable.Interact(ResolveInteractionOwner(null));
     }
 
     private void OnDisable()
@@ -36,6 +38,42 @@ public class XRIOfficialInteractableBridge : MonoBehaviour
         focusedInteractable = null;
         if (prompt != null)
             prompt.Hide();
+    }
+
+    public bool TryInteractFromRightHand(GameObject ownerOverride = null)
+    {
+        return TryInteractFromRay(rightHandRayInteractor, ownerOverride);
+    }
+
+    public bool TryInteractFromLeftHand(GameObject ownerOverride = null)
+    {
+        return TryInteractFromRay(leftHandRayInteractor, ownerOverride);
+    }
+
+    public bool TryInteractFromRay(XRRayInteractor rayInteractor, GameObject ownerOverride = null)
+    {
+        IInteractable interactable = FindFocusedInteractable(rayInteractor);
+        return TryInteract(interactable, ownerOverride);
+    }
+
+    public bool TryInteractFromTransform(Transform rayOrigin, GameObject ownerOverride = null)
+    {
+        IInteractable interactable = FindFocusedInteractable(rayOrigin);
+        return TryInteract(interactable, ownerOverride);
+    }
+
+    public void SetPriorityRayOriginOverride(Transform rayOrigin)
+    {
+        priorityRayOriginOverride = rayOrigin;
+    }
+
+    private bool TryInteract(IInteractable interactable, GameObject ownerOverride)
+    {
+        if (interactable == null)
+            return false;
+
+        interactable.Interact(ResolveInteractionOwner(ownerOverride));
+        return true;
     }
 
     private IInteractable FindFocusedInteractable(XRRayInteractor rayInteractor)
@@ -53,6 +91,15 @@ public class XRIOfficialInteractableBridge : MonoBehaviour
         Transform origin = rayInteractor.rayOriginTransform != null
             ? rayInteractor.rayOriginTransform
             : rayInteractor.transform;
+        return FindFocusedInteractable(origin);
+    }
+
+    private IInteractable FindFocusedInteractable(Transform origin)
+    {
+        if (origin == null)
+            return null;
+
+        int effectiveMask = interactionMask.value == 0 ? ~0 : interactionMask.value;
         int effectiveBlockingMask = blockingMask.value == 0 ? ~0 : blockingMask.value;
         RaycastHit[] hits = Physics.SphereCastAll(
             origin.position,
@@ -76,6 +123,14 @@ public class XRIOfficialInteractableBridge : MonoBehaviour
         }
 
         return null;
+    }
+
+    private GameObject ResolveInteractionOwner(GameObject ownerOverride)
+    {
+        if (ownerOverride != null)
+            return ownerOverride;
+
+        return interactionOwner != null ? interactionOwner : gameObject;
     }
 
     private static bool TryResolveInteractable(Collider hitCollider, int interactionMask, out IInteractable interactable)
