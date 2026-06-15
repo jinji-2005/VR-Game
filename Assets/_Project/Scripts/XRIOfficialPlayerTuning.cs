@@ -15,6 +15,9 @@ public class XRIOfficialPlayerTuning : MonoBehaviour
     [SerializeField] private float crouchHeight = 1f;
     [SerializeField] private float crouchSpeed = 2f;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource runningAudioSource;
+
     private InputAction sprintAction;
     private bool enabledSprintActionLocally;
 
@@ -47,6 +50,7 @@ public class XRIOfficialPlayerTuning : MonoBehaviour
         if (moveProvider != null)
             moveProvider.moveSpeed = walkSpeed;
 
+        StopMovementAudio();
         IsProducingFootstepNoise = false;
         MovementNoiseStrength = 0f;
     }
@@ -63,12 +67,15 @@ public class XRIOfficialPlayerTuning : MonoBehaviour
             : walkSpeed * (sprinting ? sprintMultiplier : 1f);
 
         UpdateMovementNoise(crouching, sprinting);
+        UpdateMovementAudio(sprinting);
     }
 
     public void DisableLocomotion()
     {
         if (moveProvider != null)
             moveProvider.enabled = false;
+
+        StopMovementAudio();
     }
 
     private void UpdateMovementNoise(bool crouching, bool sprinting)
@@ -94,5 +101,33 @@ public class XRIOfficialPlayerTuning : MonoBehaviour
         float inputMagnitude = Mathf.Clamp01(movement.magnitude / Mathf.Max(walkSpeed, 0.01f));
         MovementNoiseStrength = baseNoise * Mathf.Lerp(0.55f, 1f, inputMagnitude);
         IsProducingFootstepNoise = MovementNoiseStrength > 0.05f;
+    }
+
+    private void UpdateMovementAudio(bool sprinting)
+    {
+        if (runningAudioSource == null)
+            return;
+
+        bool shouldRunSound = sprinting && IsProducingFootstepNoise;
+        if (shouldRunSound && !runningAudioSource.isPlaying)
+        {
+            runningAudioSource.loop = true;
+            runningAudioSource.Play();
+        }
+
+        float targetVolume = shouldRunSound ? 1f : 0f;
+        runningAudioSource.volume = Mathf.Lerp(
+            runningAudioSource.volume,
+            targetVolume,
+            Time.deltaTime * 12f);
+    }
+
+    private void StopMovementAudio()
+    {
+        if (runningAudioSource == null)
+            return;
+
+        runningAudioSource.Stop();
+        runningAudioSource.volume = 0f;
     }
 }

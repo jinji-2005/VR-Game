@@ -48,6 +48,7 @@ public class PlayerRespawnController : MonoBehaviour
 
     private CharacterController characterController;
     private PlayerController playerController;
+    private XRIHybridDemoDriver hybridDemoDriver;
     private Vector3 fallbackSpawnPosition;
     private Quaternion fallbackSpawnRotation;
     private Vector3 previousPosition;
@@ -75,6 +76,9 @@ public class PlayerRespawnController : MonoBehaviour
     {
         characterController = GetComponent<CharacterController>();
         playerController = GetComponent<PlayerController>();
+        hybridDemoDriver = GetComponent<XRIHybridDemoDriver>() ??
+            GetComponentInParent<XRIHybridDemoDriver>() ??
+            GetComponentInChildren<XRIHybridDemoDriver>(true);
         fallbackSpawnPosition = transform.position;
         fallbackSpawnRotation = transform.rotation;
         previousPosition = transform.position;
@@ -243,6 +247,16 @@ public class PlayerRespawnController : MonoBehaviour
             if (hadController)
                 characterController.enabled = wasEnabled;
         }
+
+        if (hybridDemoDriver == null)
+        {
+            hybridDemoDriver = GetComponent<XRIHybridDemoDriver>() ??
+                GetComponentInParent<XRIHybridDemoDriver>() ??
+                GetComponentInChildren<XRIHybridDemoDriver>(true);
+        }
+
+        if (hybridDemoDriver != null)
+            hybridDemoDriver.ResetMotionAfterTeleport();
 
         previousPosition = transform.position;
     }

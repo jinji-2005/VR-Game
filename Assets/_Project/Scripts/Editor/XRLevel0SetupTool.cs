@@ -45,6 +45,13 @@ public static class XRLevel0SetupTool
     private const string Level0OfficialXRIModeValue = "OfficialXRI";
     private const string Level0HybridXRIModeValue = "HybridXRI";
 
+    private sealed class OfficialPlayerEffectBundle
+    {
+        public AudioSource RunningAudioSource;
+        public AudioSource JumpAudioSource;
+        public AudioSource DeathAudioSource;
+    }
+
     static XRLevel0SetupTool()
     {
         EditorApplication.playModeStateChanged -= HandlePlayModeStateChanged;
@@ -376,6 +383,15 @@ public static class XRLevel0SetupTool
             return;
         }
 
+        if (useOfficialRig && hasOfficialRig && desktopPlayer != null && officialSetup != null)
+        {
+            officialSetup.transform.SetPositionAndRotation(
+                desktopPlayer.transform.position,
+                desktopPlayer.transform.rotation);
+            ConfigureOfficialXRIIntegration(officialSetup, desktopPlayer);
+            EnsureOfficialInteractablesForExistingGameplay();
+        }
+
         if (desktopPlayer != null)
             desktopPlayer.SetActive(!useOfficialRig);
 
@@ -650,11 +666,19 @@ public static class XRLevel0SetupTool
         if (xriCamera != null)
             xriCamera.nearClipPlane = 0.05f;
 
+        OfficialPlayerEffectBundle effects = SynchronizeOfficialPlayerEffects(
+            officialSetup,
+            desktopPlayer,
+            desktopController,
+            xriCharacter,
+            xriCamera);
+
         XRIOfficialPlayerTuning tuning = EnsureComponent<XRIOfficialPlayerTuning>(officialSetup);
         SerializedObject tuningSo = new SerializedObject(tuning);
         SetObject(tuningSo, "moveProvider", moveProvider);
         SetObject(tuningSo, "bodyController", xriCharacter);
         SetObject(tuningSo, "xriInputActions", actions);
+        SetObject(tuningSo, "runningAudioSource", effects.RunningAudioSource);
         if (desktopController != null)
         {
             SetFloat(tuningSo, "walkSpeed", desktopController.WalkSpeed);
@@ -677,6 +701,8 @@ public static class XRLevel0SetupTool
         SetObject(hybridSo, "interactionOwner", desktopPlayer);
         SetObject(hybridSo, "leftControllerVisualPrefab", FindImportedXRIControllerPrefab("XR Controller Left"));
         SetObject(hybridSo, "rightControllerVisualPrefab", FindImportedXRIControllerPrefab("XR Controller Right"));
+        SetObject(hybridSo, "runningAudioSource", effects.RunningAudioSource);
+        SetObject(hybridSo, "jumpAudioSource", effects.JumpAudioSource);
         if (desktopController != null)
         {
             SetFloat(hybridSo, "walkSpeed", desktopController.WalkSpeed);
@@ -690,6 +716,212 @@ public static class XRLevel0SetupTool
 
         if (rightHandRay == null || rightHandController == null || leftHandRay == null || leftHandController == null)
             Debug.LogWarning("One or more official XRI hand rays/controllers were not found. Key and door Trigger bridging may be incomplete.");
+    }
+
+    private static OfficialPlayerEffectBundle SynchronizeOfficialPlayerEffects(
+        GameObject officialSetup,
+        GameObject desktopPlayer,
+        PlayerController desktopController,
+        CharacterController xriCharacter,
+        Camera xriCamera)
+    {
+        OfficialPlayerEffectBundle effects = new OfficialPlayerEffectBundle();
+        if (officialSetup == null || desktopPlayer == null)
+            return effects;
+
+        Camera desktopCamera = desktopPlayer.GetComponentInChildren<Camera>(true);
+        SynchronizeCameraPresentation(desktopCamera, xriCamera, officialSetup);
+
+        Transform effectsRoot = EnsureMirroredEffectsRoot(
+            xriCharacter != null ? xriCharacter.transform : officialSetup.transform);
+        if (effectsRoot == null)
+            return effects;
+
+        effects.RunningAudioSource = CloneSerializedAudioSource(
+            desktopController,
+            "runningAudioSource",
+            effectsRoot,
+            "Running Audio Source");
+        effects.JumpAudioSource = CloneSerializedAudioSource(
+            desktopController,
+            "jumpAudioSource",
+            effectsRoot,
+            "Jump Audio Source");
+
+        PlayerRespawnController desktopRespawn = desktopPlayer.GetComponent<PlayerRespawnController>();
+        if (desktopRespawn != null && xriCharacter != null)
+        {
+            effects.DeathAudioSource = CloneSerializedAudioSource(
+                desktopRespawn,
+                "deathAudioSource",
+                effectsRoot,
+                "Death Audio Source");
+
+            PlayerRespawnController xriRespawn = EnsureComponent<PlayerRespawnController>(xriCharacter.gameObject);
+            CopyComponentSerializedValues(desktopRespawn, xriRespawn);
+            SerializedObject respawnSo = new SerializedObject(xriRespawn);
+            SetObject(respawnSo, "deathAudioSource", effects.DeathAudioSource);
+            respawnSo.ApplyModifiedProperties();
+        }
+
+        return effects;
+    }
+
+    private static void SynchronizeCameraPresentation(Camera desktopCamera, Camera xriCamera, GameObject officialSetup)
+    {
+        if (desktopCamera == null || xriCamera == null)
+            return;
+
+        CopyComponentSerializedValues(desktopCamera, xriCamera);
+        xriCamera.name = "Main Camera";
+        xriCamera.tag = "MainCamera";
+        xriCamera.stereoTargetEye = StereoTargetEyeMask.Both;
+        xriCamera.nearClipPlane = Mathf.Min(xriCamera.nearClipPlane, 0.05f);
+
+        foreach (Component sourceComponent in desktopCamera.GetComponents<Component>())
+        {
+            if (sourceComponent == null ||
+                sourceComponent is Transform ||
+                sourceComponent is Camera)
+            {
+                continue;
+            }
+
+            if (sourceComponent is AudioListener sourceListener)
+            {
+                AudioListener targetListener = EnsureComponent<AudioListener>(xriCamera.gameObject);
+                targetListener.enabled = sourceListener.enabled;
+                continue;
+            }
+
+            Type componentType = sourceComponent.GetType();
+            Component targetComponent = xriCamera.GetComponent(componentType);
+            if (targetComponent != null)
+            {
+                CopyComponentSerializedValues(sourceComponent, targetComponent);
+                continue;
+            }
+
+            UnityEditorInternal.ComponentUtility.CopyComponent(sourceComponent);
+            UnityEditorInternal.ComponentUtility.PasteComponentAsNew(xriCamera.gameObject);
+        }
+
+        EnsureSingleOfficialAudioListener(officialSetup, xriCamera);
+    }
+
+    private static void EnsureSingleOfficialAudioListener(GameObject officialSetup, Camera xriCamera)
+    {
+        if (officialSetup == null || xriCamera == null)
+            return;
+
+        AudioListener activeListener = xriCamera.GetComponent<AudioListener>();
+        if (activeListener == null)
+            return;
+
+        foreach (AudioListener listener in officialSetup.GetComponentsInChildren<AudioListener>(true))
+        {
+            if (listener != null)
+                listener.enabled = listener == activeListener;
+        }
+    }
+
+    private static Transform EnsureMirroredEffectsRoot(Transform parent)
+    {
+        if (parent == null)
+            return null;
+
+        Transform root = parent.Find("__HybridMirroredPlayerEffects");
+        if (root != null)
+            return root;
+
+        GameObject rootGo = new GameObject("__HybridMirroredPlayerEffects");
+        rootGo.transform.SetParent(parent, false);
+        rootGo.transform.localPosition = Vector3.zero;
+        rootGo.transform.localRotation = Quaternion.identity;
+        rootGo.transform.localScale = Vector3.one;
+        return rootGo.transform;
+    }
+
+    private static AudioSource CloneSerializedAudioSource(
+        UnityEngine.Object sourceOwner,
+        string propertyName,
+        Transform parent,
+        string cloneName)
+    {
+        AudioSource source = GetSerializedObjectReference<AudioSource>(sourceOwner, propertyName);
+        return CloneAudioSource(source, parent, cloneName);
+    }
+
+    private static AudioSource CloneAudioSource(AudioSource source, Transform parent, string cloneName)
+    {
+        if (source == null || parent == null)
+            return null;
+
+        Transform child = parent.Find(cloneName);
+        if (child == null)
+        {
+            GameObject childGo = new GameObject(cloneName);
+            childGo.transform.SetParent(parent, false);
+            child = childGo.transform;
+        }
+
+        child.localPosition = Vector3.zero;
+        child.localRotation = Quaternion.identity;
+        child.localScale = Vector3.one;
+
+        AudioSource target = child.GetComponent<AudioSource>();
+        if (target == null)
+            target = child.gameObject.AddComponent<AudioSource>();
+
+        CopyAudioSourceSettings(source, target);
+        target.playOnAwake = false;
+        target.Stop();
+        return target;
+    }
+
+    private static void CopyAudioSourceSettings(AudioSource source, AudioSource target)
+    {
+        if (source == null || target == null)
+            return;
+
+        target.clip = source.clip;
+        target.outputAudioMixerGroup = source.outputAudioMixerGroup;
+        target.mute = source.mute;
+        target.bypassEffects = source.bypassEffects;
+        target.bypassListenerEffects = source.bypassListenerEffects;
+        target.bypassReverbZones = source.bypassReverbZones;
+        target.loop = source.loop;
+        target.priority = source.priority;
+        target.volume = source.volume;
+        target.pitch = source.pitch;
+        target.panStereo = source.panStereo;
+        target.spatialBlend = source.spatialBlend;
+        target.reverbZoneMix = source.reverbZoneMix;
+        target.dopplerLevel = source.dopplerLevel;
+        target.spread = source.spread;
+        target.rolloffMode = source.rolloffMode;
+        target.minDistance = source.minDistance;
+        target.maxDistance = source.maxDistance;
+    }
+
+    private static T GetSerializedObjectReference<T>(UnityEngine.Object sourceOwner, string propertyName)
+        where T : UnityEngine.Object
+    {
+        if (sourceOwner == null)
+            return null;
+
+        SerializedObject serializedObject = new SerializedObject(sourceOwner);
+        SerializedProperty property = serializedObject.FindProperty(propertyName);
+        return property != null ? property.objectReferenceValue as T : null;
+    }
+
+    private static void CopyComponentSerializedValues(Component source, Component target)
+    {
+        if (source == null || target == null)
+            return;
+
+        UnityEditorInternal.ComponentUtility.CopyComponent(source);
+        UnityEditorInternal.ComponentUtility.PasteComponentValues(target);
     }
 
     private static void ConfigureDesktopPlayerIntegration(GameObject desktopPlayer)

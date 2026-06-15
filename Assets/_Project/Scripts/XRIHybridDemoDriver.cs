@@ -33,6 +33,10 @@ public class XRIHybridDemoDriver : MonoBehaviour
     [SerializeField] private float crouchHeight = 1f;
     [SerializeField] private float crouchSpeed = 2f;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource runningAudioSource;
+    [SerializeField] private AudioSource jumpAudioSource;
+
     [Header("Demo Hands")]
     [SerializeField] private bool useOfficialDeviceSimulatorRestPose = true;
     [SerializeField] private Vector3 leftHandCameraOffset = new Vector3(-0.28f, -0.28f, 0.55f);
@@ -149,6 +153,7 @@ public class XRIHybridDemoDriver : MonoBehaviour
         HideDrivenRay(rightDrivenRay);
         RestoreOfficialInputDrivers();
         RestoreOfficialLocomotion();
+        StopMovementAudio();
         velocity = Vector3.zero;
         isCrouching = false;
         inputFrozen = false;
@@ -274,6 +279,7 @@ public class XRIHybridDemoDriver : MonoBehaviour
     {
         inputFrozen = true;
         velocity = Vector3.zero;
+        StopMovementAudio();
         DisableOfficialLocomotion();
         DisableOfficialInputDrivers();
     }
@@ -282,6 +288,14 @@ public class XRIHybridDemoDriver : MonoBehaviour
     {
         if (ActiveDriver != null)
             ActiveDriver.FreezeForDeath();
+    }
+
+    public void ResetMotionAfterTeleport()
+    {
+        velocity = Vector3.zero;
+        lastJumpPressTime = float.MinValue;
+        StopMovementAudio();
+        RefreshDemoPoseAndRayVisuals();
     }
 
     private void CacheReferences()
@@ -470,6 +484,7 @@ public class XRIHybridDemoDriver : MonoBehaviour
         if (bodyController == null)
             return;
 
+        bool jumpedThisFrame = false;
         if (bodyController.isGrounded)
         {
             if (velocity.y < 0f)
@@ -479,6 +494,7 @@ public class XRIHybridDemoDriver : MonoBehaviour
             {
                 velocity.y = jumpForce;
                 lastJumpPressTime = float.MinValue;
+                jumpedThisFrame = true;
             }
         }
 
@@ -497,6 +513,51 @@ public class XRIHybridDemoDriver : MonoBehaviour
 
         velocity.y += gravity * Time.deltaTime;
         bodyController.Move(velocity * Time.deltaTime);
+
+        UpdateMovementAudio(move, isSprinting);
+        if (jumpedThisFrame)
+            PlayJumpAudio();
+    }
+
+    private void UpdateMovementAudio(Vector3 move, bool isSprinting)
+    {
+        if (runningAudioSource == null)
+            return;
+
+        bool shouldRunSound =
+            isSprinting &&
+            !isCrouching &&
+            move.magnitude > 0.2f &&
+            bodyController != null &&
+            bodyController.isGrounded &&
+            velocity.y <= 0.1f;
+
+        if (shouldRunSound && !runningAudioSource.isPlaying)
+        {
+            runningAudioSource.loop = true;
+            runningAudioSource.Play();
+        }
+
+        float targetVolume = shouldRunSound ? 1f : 0f;
+        runningAudioSource.volume = Mathf.Lerp(
+            runningAudioSource.volume,
+            targetVolume,
+            Time.deltaTime * 12f);
+    }
+
+    private void PlayJumpAudio()
+    {
+        if (jumpAudioSource != null && jumpAudioSource.clip != null)
+            jumpAudioSource.PlayOneShot(jumpAudioSource.clip);
+    }
+
+    private void StopMovementAudio()
+    {
+        if (runningAudioSource != null)
+        {
+            runningAudioSource.Stop();
+            runningAudioSource.volume = 0f;
+        }
     }
 
     private void HandleCrouch()
