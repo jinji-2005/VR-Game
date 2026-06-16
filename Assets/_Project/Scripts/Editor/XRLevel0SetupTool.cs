@@ -728,8 +728,8 @@ public static class XRLevel0SetupTool
         SetFloat(hybridSo, "cameraHeightOffset", ResolveHybridCameraHeightOffset(desktopPlayer));
         SetFloat(hybridSo, "minimumCameraHeight", ResolveHybridMinimumCameraHeight(desktopPlayer));
         SetBool(hybridSo, "logPoseHeightsOnEnable", true);
-        SetVector3(hybridSo, "cameraLocalPosition", ResolveHybridCameraLocalPosition(desktopPlayer, desktopCamera, desktopCharacter));
-        SetVector3(hybridSo, "cameraLocalEuler", ResolveHybridCameraLocalEuler(desktopPlayer, desktopCamera));
+        SetVector3(hybridSo, "cameraLocalPosition", ResolveHybridCameraLocalPosition(desktopPlayer, desktopCamera, desktopCharacter, isLevel45));
+        SetVector3(hybridSo, "cameraLocalEuler", ResolveHybridCameraLocalEuler(desktopPlayer, desktopCamera, isLevel45));
         SetFloat(hybridSo, "controllerVisualPoseScale", ResolveHybridControllerVisualPoseScale(isLevel45));
         SetFloat(hybridSo, "controllerVisualScale", ResolveHybridControllerVisualScale(isLevel45));
         SetFloat(hybridSo, "rayVisualDistanceScale", ResolveHybridRayVisualDistanceScale(isLevel45));
@@ -813,10 +813,11 @@ public static class XRLevel0SetupTool
     private static Vector3 ResolveHybridCameraLocalPosition(
         GameObject desktopPlayer,
         Camera desktopCamera,
-        CharacterController desktopCharacter)
+        CharacterController desktopCharacter,
+        bool isLevel45)
     {
         Vector3 fallback = ResolveDesktopCameraLocalPosition(desktopPlayer, desktopCamera, desktopCharacter);
-        if (!UseHybridDesktopCameraPoseProfile || desktopPlayer == null || desktopCamera == null)
+        if (!isLevel45 || !UseHybridDesktopCameraPoseProfile || desktopPlayer == null || desktopCamera == null)
             return fallback;
 
         Vector3 localFromDesktopCamera =
@@ -832,9 +833,9 @@ public static class XRLevel0SetupTool
         return localFromDesktopCamera;
     }
 
-    private static Vector3 ResolveHybridCameraLocalEuler(GameObject desktopPlayer, Camera desktopCamera)
+    private static Vector3 ResolveHybridCameraLocalEuler(GameObject desktopPlayer, Camera desktopCamera, bool isLevel45)
     {
-        if (!UseHybridDesktopCameraPoseProfile || desktopPlayer == null || desktopCamera == null)
+        if (!isLevel45 || !UseHybridDesktopCameraPoseProfile || desktopPlayer == null || desktopCamera == null)
             return Vector3.zero;
 
         return desktopCamera.transform.localEulerAngles;
