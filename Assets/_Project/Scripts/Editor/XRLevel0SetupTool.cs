@@ -44,6 +44,18 @@ public static class XRLevel0SetupTool
     private const string Level0KeyboardModeValue = "Keyboard";
     private const string Level0OfficialXRIModeValue = "OfficialXRI";
     private const string Level0HybridXRIModeValue = "HybridXRI";
+    private const float DefaultHybridCameraHeightOffset = 0.18f;
+    private const float ScaledPlayerHybridCameraHeightOffset = 2.28f;
+    private const float DefaultHybridMinimumCameraHeight = 1.82f;
+    private const float ScaledPlayerHybridMinimumCameraHeight = 4.0f;
+    private const float ScaledPlayerHybridOffsetThreshold = 1.1f;
+    private const float DefaultHybridControllerVisualPoseScale = 1.0f;
+    private const float Level45HybridControllerVisualPoseScale = 1.55f;
+    private const float DefaultHybridControllerVisualScale = 1.0f;
+    private const float Level45HybridControllerVisualScale = 1.12f;
+    private const float DefaultHybridRayVisualDistanceScale = 1.0f;
+    private const float Level45HybridRayVisualDistanceScale = 1.55f;
+    private const bool UseHybridDesktopCameraPoseProfile = true;
 
     private sealed class OfficialPlayerEffectBundle
     {
@@ -324,7 +336,12 @@ public static class XRLevel0SetupTool
     private static bool IsSupportedPreviewScene(string scenePath)
     {
         return string.Equals(scenePath, ScenePath, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(scenePath, Level45ScenePath, StringComparison.OrdinalIgnoreCase);
+            IsLevel45ScenePath(scenePath);
+    }
+
+    private static bool IsLevel45ScenePath(string scenePath)
+    {
+        return string.Equals(scenePath, Level45ScenePath, StringComparison.OrdinalIgnoreCase);
     }
 
     private static void EnsureSceneInBuildSettings(string scenePath)
@@ -400,7 +417,7 @@ public static class XRLevel0SetupTool
             officialSetup.SetActive(useOfficialRig);
             XRIHybridDemoDriver hybridDriver = officialSetup.GetComponent<XRIHybridDemoDriver>();
             if (hybridDriver == null && useHybridXRI)
-                hybridDriver = officialSetup.AddComponent<XRIHybridDemoDriver>();
+                hybridDriver = GetOrCreateDisabledHybridDriver(officialSetup);
 
             if (hybridDriver != null)
                 hybridDriver.enabled = useHybridXRI;
@@ -614,9 +631,11 @@ public static class XRLevel0SetupTool
     private static void ConfigureOfficialXRIIntegration(GameObject officialSetup, GameObject desktopPlayer)
     {
         ConfigureDesktopPlayerIntegration(desktopPlayer);
+        bool isLevel45 = IsLevel45ScenePath(SceneManager.GetActiveScene().path);
 
         PlayerController desktopController = desktopPlayer.GetComponent<PlayerController>();
         CharacterController desktopCharacter = desktopPlayer.GetComponent<CharacterController>();
+        Camera desktopCamera = desktopPlayer.GetComponentInChildren<Camera>(true);
         InputActionAsset actions = FindImportedXRIInputActions();
         InteractionPrompt prompt = FindOrCreatePrompt();
 
@@ -645,6 +664,8 @@ public static class XRLevel0SetupTool
         CharacterController xriCharacter = officialSetup.GetComponentInChildren<CharacterController>(true);
         CharacterControllerDriver driver = officialSetup.GetComponentInChildren<CharacterControllerDriver>(true);
         Camera xriCamera = officialSetup.GetComponentInChildren<Camera>(true);
+
+        NormalizeOfficialRigPose(officialSetup, desktopPlayer, desktopCharacter, desktopCamera, xriCharacter, xriCamera);
 
         if (xriCharacter != null)
             xriCharacter.gameObject.tag = "Player";
@@ -688,8 +709,7 @@ public static class XRLevel0SetupTool
         }
         tuningSo.ApplyModifiedProperties();
 
-        XRIHybridDemoDriver hybridDriver = EnsureComponent<XRIHybridDemoDriver>(officialSetup);
-        hybridDriver.enabled = false;
+        XRIHybridDemoDriver hybridDriver = GetOrCreateDisabledHybridDriver(officialSetup);
         SerializedObject hybridSo = new SerializedObject(hybridDriver);
         SetObject(hybridSo, "bodyController", xriCharacter);
         SetObject(hybridSo, "xriCamera", xriCamera);
@@ -703,6 +723,16 @@ public static class XRLevel0SetupTool
         SetObject(hybridSo, "rightControllerVisualPrefab", FindImportedXRIControllerPrefab("XR Controller Right"));
         SetObject(hybridSo, "runningAudioSource", effects.RunningAudioSource);
         SetObject(hybridSo, "jumpAudioSource", effects.JumpAudioSource);
+        SetBool(hybridSo, "lockCameraLocalPose", true);
+        SetBool(hybridSo, "resetCameraOffsetParent", true);
+        SetFloat(hybridSo, "cameraHeightOffset", ResolveHybridCameraHeightOffset(desktopPlayer));
+        SetFloat(hybridSo, "minimumCameraHeight", ResolveHybridMinimumCameraHeight(desktopPlayer));
+        SetBool(hybridSo, "logPoseHeightsOnEnable", true);
+        SetVector3(hybridSo, "cameraLocalPosition", ResolveHybridCameraLocalPosition(desktopPlayer, desktopCamera, desktopCharacter));
+        SetVector3(hybridSo, "cameraLocalEuler", ResolveHybridCameraLocalEuler(desktopPlayer, desktopCamera));
+        SetFloat(hybridSo, "controllerVisualPoseScale", ResolveHybridControllerVisualPoseScale(isLevel45));
+        SetFloat(hybridSo, "controllerVisualScale", ResolveHybridControllerVisualScale(isLevel45));
+        SetFloat(hybridSo, "rayVisualDistanceScale", ResolveHybridRayVisualDistanceScale(isLevel45));
         if (desktopController != null)
         {
             SetFloat(hybridSo, "walkSpeed", desktopController.WalkSpeed);
@@ -716,6 +746,138 @@ public static class XRLevel0SetupTool
 
         if (rightHandRay == null || rightHandController == null || leftHandRay == null || leftHandController == null)
             Debug.LogWarning("One or more official XRI hand rays/controllers were not found. Key and door Trigger bridging may be incomplete.");
+    }
+
+    private static void NormalizeOfficialRigPose(
+        GameObject officialSetup,
+        GameObject desktopPlayer,
+        CharacterController desktopCharacter,
+        Camera desktopCamera,
+        CharacterController xriCharacter,
+        Camera xriCamera)
+    {
+        if (officialSetup != null && desktopPlayer != null)
+        {
+            officialSetup.transform.SetPositionAndRotation(
+                desktopPlayer.transform.position,
+                desktopPlayer.transform.rotation);
+        }
+
+        if (xriCharacter != null && officialSetup != null && xriCharacter.transform != officialSetup.transform)
+        {
+            xriCharacter.transform.localPosition = Vector3.zero;
+            xriCharacter.transform.localRotation = Quaternion.identity;
+            xriCharacter.transform.localScale = Vector3.one;
+        }
+
+        if (xriCamera == null)
+            return;
+
+        Transform cameraParent = xriCamera.transform.parent;
+        if (IsCameraOffsetTransform(cameraParent))
+        {
+            cameraParent.localPosition = Vector3.zero;
+            cameraParent.localRotation = Quaternion.identity;
+            cameraParent.localScale = Vector3.one;
+        }
+
+        xriCamera.transform.localPosition = ResolveDesktopCameraLocalPosition(
+            desktopPlayer,
+            desktopCamera,
+            desktopCharacter);
+        xriCamera.transform.localRotation = Quaternion.identity;
+        xriCamera.transform.localScale = Vector3.one;
+    }
+
+    private static Vector3 ResolveDesktopCameraLocalPosition(
+        GameObject desktopPlayer,
+        Camera desktopCamera,
+        CharacterController desktopCharacter)
+    {
+        if (desktopPlayer != null && desktopCamera != null)
+        {
+            float worldEyeHeight = desktopCamera.transform.position.y - desktopPlayer.transform.position.y;
+            if (!float.IsNaN(worldEyeHeight) && worldEyeHeight > 0.1f)
+                return new Vector3(0f, worldEyeHeight, 0f);
+        }
+
+        if (desktopCamera != null)
+            return new Vector3(0f, Mathf.Max(0.1f, desktopCamera.transform.localPosition.y), 0f);
+
+        if (desktopCharacter != null)
+            return new Vector3(0f, Mathf.Max(0.1f, desktopCharacter.height * 0.9f), 0f);
+
+        return new Vector3(0f, 1.4f, 0f);
+    }
+
+    private static Vector3 ResolveHybridCameraLocalPosition(
+        GameObject desktopPlayer,
+        Camera desktopCamera,
+        CharacterController desktopCharacter)
+    {
+        Vector3 fallback = ResolveDesktopCameraLocalPosition(desktopPlayer, desktopCamera, desktopCharacter);
+        if (!UseHybridDesktopCameraPoseProfile || desktopPlayer == null || desktopCamera == null)
+            return fallback;
+
+        Vector3 localFromDesktopCamera =
+            Quaternion.Inverse(desktopPlayer.transform.rotation) *
+            (desktopCamera.transform.position - desktopPlayer.transform.position);
+        if (float.IsNaN(localFromDesktopCamera.x) ||
+            float.IsNaN(localFromDesktopCamera.y) ||
+            float.IsNaN(localFromDesktopCamera.z))
+        {
+            return fallback;
+        }
+
+        return localFromDesktopCamera;
+    }
+
+    private static Vector3 ResolveHybridCameraLocalEuler(GameObject desktopPlayer, Camera desktopCamera)
+    {
+        if (!UseHybridDesktopCameraPoseProfile || desktopPlayer == null || desktopCamera == null)
+            return Vector3.zero;
+
+        return desktopCamera.transform.localEulerAngles;
+    }
+
+    private static float ResolveHybridCameraHeightOffset(GameObject desktopPlayer)
+    {
+        if (desktopPlayer != null && desktopPlayer.transform.lossyScale.y > ScaledPlayerHybridOffsetThreshold)
+            return ScaledPlayerHybridCameraHeightOffset;
+
+        return DefaultHybridCameraHeightOffset;
+    }
+
+    private static float ResolveHybridMinimumCameraHeight(GameObject desktopPlayer)
+    {
+        if (desktopPlayer != null && desktopPlayer.transform.lossyScale.y > ScaledPlayerHybridOffsetThreshold)
+            return ScaledPlayerHybridMinimumCameraHeight;
+
+        return DefaultHybridMinimumCameraHeight;
+    }
+
+    private static float ResolveHybridControllerVisualPoseScale(bool isLevel45)
+    {
+        return isLevel45 ? Level45HybridControllerVisualPoseScale : DefaultHybridControllerVisualPoseScale;
+    }
+
+    private static float ResolveHybridControllerVisualScale(bool isLevel45)
+    {
+        return isLevel45 ? Level45HybridControllerVisualScale : DefaultHybridControllerVisualScale;
+    }
+
+    private static float ResolveHybridRayVisualDistanceScale(bool isLevel45)
+    {
+        return isLevel45 ? Level45HybridRayVisualDistanceScale : DefaultHybridRayVisualDistanceScale;
+    }
+
+    private static bool IsCameraOffsetTransform(Transform candidate)
+    {
+        if (candidate == null)
+            return false;
+
+        return candidate.name.IndexOf("Camera Offset", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            candidate.name.IndexOf("CameraFloorOffset", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     private static OfficialPlayerEffectBundle SynchronizeOfficialPlayerEffects(
@@ -1398,6 +1560,28 @@ public static class XRLevel0SetupTool
     {
         T component = go.GetComponent<T>();
         return component != null ? component : go.AddComponent<T>();
+    }
+
+    private static XRIHybridDemoDriver GetOrCreateDisabledHybridDriver(GameObject officialSetup)
+    {
+        XRIHybridDemoDriver driver = officialSetup.GetComponent<XRIHybridDemoDriver>();
+        if (driver != null)
+        {
+            driver.enabled = false;
+            return driver;
+        }
+
+        bool wasActive = officialSetup.activeSelf;
+        if (wasActive)
+            officialSetup.SetActive(false);
+
+        driver = officialSetup.AddComponent<XRIHybridDemoDriver>();
+        driver.enabled = false;
+
+        if (wasActive)
+            officialSetup.SetActive(true);
+
+        return driver;
     }
 
     private static void SetObject(SerializedObject serializedObject, string propertyName, UnityEngine.Object value)

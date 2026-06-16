@@ -37,12 +37,22 @@ public class XRIHybridDemoDriver : MonoBehaviour
     [SerializeField] private AudioSource runningAudioSource;
     [SerializeField] private AudioSource jumpAudioSource;
 
+    [Header("Pose Normalization")]
+    [SerializeField] private bool lockCameraLocalPose = true;
+    [SerializeField] private bool resetCameraOffsetParent = true;
+    [SerializeField] private float cameraHeightOffset = 0.18f;
+    [SerializeField] private float minimumCameraHeight = 1.82f;
+    [SerializeField] private bool logPoseHeightsOnEnable = true;
+    [SerializeField] private Vector3 cameraLocalPosition = new Vector3(0f, 1.4f, 0f);
+    [SerializeField] private Vector3 cameraLocalEuler = Vector3.zero;
+
     [Header("Demo Hands")]
     [SerializeField] private bool useOfficialDeviceSimulatorRestPose = true;
     [SerializeField] private Vector3 leftHandCameraOffset = new Vector3(-0.28f, -0.28f, 0.55f);
     [SerializeField] private Vector3 rightHandCameraOffset = new Vector3(0.28f, -0.32f, 0.65f);
     [SerializeField] private float handAimDistance = 8f;
-    [SerializeField] private float controllerVisualScale = 1.25f;
+    [SerializeField] private float controllerVisualPoseScale = 1f;
+    [SerializeField] private float controllerVisualScale = 1f;
     [SerializeField] private Vector3 controllerVisualLocalOffset = new Vector3(0f, 0f, -0.05f);
     [SerializeField] private Vector3 controllerVisualLocalEuler = new Vector3(0f, 180f, 0f);
     [SerializeField] private bool updatePoseBeforeRender = true;
@@ -59,6 +69,7 @@ public class XRIHybridDemoDriver : MonoBehaviour
     [SerializeField] private bool preferOfficialRayVisual = true;
     [SerializeField] private bool fallbackWhenOfficialRayHidden = true;
     [SerializeField] private bool useFallbackRayRibbon = false;
+    [SerializeField] private float rayVisualDistanceScale = 1f;
     [SerializeField] private LayerMask officialRayMask = ~0;
 
     private readonly List<Behaviour> disabledLocomotionBehaviours = new List<Behaviour>();
@@ -81,6 +92,7 @@ public class XRIHybridDemoDriver : MonoBehaviour
     private bool loggedLeftVisualStatus;
     private bool loggedRightVisualStatus;
     private bool loggedRayVisualStatus;
+    private bool loggedPoseHeights;
     private bool subscribedBeforeRender;
     private Material drivenRayMaterial;
     private Material defaultLineMaterial;
@@ -124,14 +136,16 @@ public class XRIHybridDemoDriver : MonoBehaviour
     private void OnEnable()
     {
         CacheReferences();
+        DisableOfficialLocomotion();
+        DisableOfficialInputDrivers();
+        NormalizeHybridRigPose();
         CacheDefaults();
         PreparePlayerTarget();
         EnsureOfficialControllerModels();
         EnsureOfficialRayVisuals();
-        DisableOfficialLocomotion();
-        DisableOfficialInputDrivers();
         SetBridgeAimOverride();
         inputFrozen = false;
+        loggedPoseHeights = false;
         ActiveDriver = this;
         SubscribeBeforeRender();
 
@@ -260,6 +274,7 @@ public class XRIHybridDemoDriver : MonoBehaviour
         UpdateOfficialRayVisuals();
         ForceHybridOfficialLineVisualUpdate(leftDrivenRay);
         ForceHybridOfficialLineVisualUpdate(rightDrivenRay);
+        LogPoseHeightsOnce();
     }
 
     public void CopyMovementSettings(PlayerController desktopController)
@@ -295,6 +310,7 @@ public class XRIHybridDemoDriver : MonoBehaviour
         velocity = Vector3.zero;
         lastJumpPressTime = float.MinValue;
         StopMovementAudio();
+        NormalizeHybridRigPose();
         RefreshDemoPoseAndRayVisuals();
     }
 
@@ -394,6 +410,67 @@ public class XRIHybridDemoDriver : MonoBehaviour
         hasDefaults = true;
     }
 
+    private void NormalizeHybridRigPose()
+    {
+        if (xriCamera == null)
+            return;
+
+        Transform cameraTransform = xriCamera.transform;
+        Transform cameraParent = cameraTransform.parent;
+        if (resetCameraOffsetParent && IsCameraOffsetTransform(cameraParent))
+        {
+            cameraParent.localPosition = Vector3.zero;
+            cameraParent.localRotation = Quaternion.identity;
+            cameraParent.localScale = Vector3.one;
+        }
+
+        if (!lockCameraLocalPose)
+            return;
+
+        Vector3 targetLocalPosition = cameraLocalPosition + Vector3.up * cameraHeightOffset;
+        targetLocalPosition.y = Mathf.Max(targetLocalPosition.y, minimumCameraHeight);
+        cameraTransform.localPosition = targetLocalPosition;
+        cameraTransform.localRotation = Quaternion.Euler(cameraLocalEuler);
+        pitch = NormalizePitch(cameraLocalEuler.x);
+
+        if (hasDefaults)
+            initialCameraLocalPosition = cameraTransform.localPosition;
+    }
+
+    private void LogPoseHeightsOnce()
+    {
+        if (!logPoseHeightsOnEnable || loggedPoseHeights || xriCamera == null)
+            return;
+
+        float bodyY = bodyController != null ? bodyController.transform.position.y : transform.position.y;
+        float cameraWorldHeight = xriCamera.transform.position.y - bodyY;
+        float leftWorldHeight = leftHandTransform != null ? leftHandTransform.position.y - bodyY : float.NaN;
+        float rightWorldHeight = rightHandTransform != null ? rightHandTransform.position.y - bodyY : float.NaN;
+        Debug.Log(
+            $"Hybrid XRI pose heights: cameraLocalY={xriCamera.transform.localPosition.y:F3}, " +
+            $"cameraWorldHeight={cameraWorldHeight:F3}, leftHandWorldHeight={leftWorldHeight:F3}, " +
+            $"rightHandWorldHeight={rightWorldHeight:F3}, baseLocalY={cameraLocalPosition.y:F3}, " +
+            $"heightOffset={cameraHeightOffset:F3}, minimumCameraHeight={minimumCameraHeight:F3}, " +
+            $"controllerVisualPoseScale={controllerVisualPoseScale:F2}, " +
+            $"controllerVisualScale={controllerVisualScale:F2}, rayVisualDistanceScale={rayVisualDistanceScale:F2}.");
+        loggedPoseHeights = true;
+    }
+
+    private static bool IsCameraOffsetTransform(Transform candidate)
+    {
+        if (candidate == null)
+            return false;
+
+        return candidate.name.IndexOf("Camera Offset", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+            candidate.name.IndexOf("CameraFloorOffset", System.StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static float NormalizePitch(float angle)
+    {
+        angle = Mathf.Repeat(angle + 180f, 360f) - 180f;
+        return Mathf.Clamp(angle, -85f, 85f);
+    }
+
     private void DisableOfficialLocomotion()
     {
         if (disabledLocomotionBehaviours.Count > 0)
@@ -422,6 +499,9 @@ public class XRIHybridDemoDriver : MonoBehaviour
             string typeName = behaviour.GetType().Name;
             string fullTypeName = behaviour.GetType().FullName;
             if (typeName == "ActionBasedControllerManager" ||
+                typeName == "TrackedPoseDriver" ||
+                fullTypeName == "UnityEngine.InputSystem.XR.TrackedPoseDriver" ||
+                fullTypeName == "UnityEngine.SpatialTracking.TrackedPoseDriver" ||
                 fullTypeName == "UnityEngine.XR.Interaction.Toolkit.Inputs.XRTransformStabilizer")
             {
                 DisableTemporarily(behaviour, disabledOfficialInputBehaviours);
@@ -476,7 +556,10 @@ public class XRIHybridDemoDriver : MonoBehaviour
 
         pitch = Mathf.Clamp(pitch - mouseY, -85f, 85f);
         body.Rotate(Vector3.up * mouseX);
-        xriCamera.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+        xriCamera.transform.localRotation = Quaternion.Euler(
+            pitch,
+            cameraLocalEuler.y,
+            cameraLocalEuler.z);
     }
 
     private void HandleMovement()
@@ -900,11 +983,15 @@ public class XRIHybridDemoDriver : MonoBehaviour
 
     private void BuildOfficialLikeRayPoints(DrivenRayState rayState, int pointCount)
     {
-        Vector3 origin = rayState.HybridLinePoints[0];
-        Vector3 targetEnd = rayState.HybridLinePoints[1];
-        Vector3 targetVector = targetEnd - origin;
-        float targetLength = Mathf.Max(0.05f, targetVector.magnitude);
-        Vector3 targetDirection = targetLength > 0.001f ? targetVector / targetLength : Vector3.forward;
+        Vector3 sourceOrigin = rayState.HybridLinePoints[0];
+        Vector3 sourceEnd = rayState.HybridLinePoints[1];
+        Vector3 targetVector = sourceEnd - sourceOrigin;
+        float sourceLength = Mathf.Max(0.05f, targetVector.magnitude);
+        Vector3 targetDirection = sourceLength > 0.001f ? targetVector / sourceLength : Vector3.forward;
+        float visualDistanceScale = Mathf.Max(0.01f, rayVisualDistanceScale);
+        float targetLength = sourceLength * visualDistanceScale;
+        Vector3 origin = ScalePointFromCamera(sourceOrigin, visualDistanceScale);
+        Vector3 targetEnd = origin + targetDirection * targetLength;
 
         if (!rayState.HasRenderPoints ||
             Vector3.SqrMagnitude(rayState.CurrentRenderEnd - targetEnd) >
@@ -1244,8 +1331,7 @@ public class XRIHybridDemoDriver : MonoBehaviour
 
         visualInstance.transform.localPosition = controllerVisualLocalOffset;
         visualInstance.transform.localRotation = Quaternion.Euler(controllerVisualLocalEuler);
-        float visualScale = useOfficialDeviceSimulatorRestPose ? 1f : controllerVisualScale;
-        visualInstance.transform.localScale = Vector3.one * Mathf.Max(0.01f, visualScale);
+        visualInstance.transform.localScale = Vector3.one * Mathf.Max(0.01f, controllerVisualScale);
         visualInstance.SetActive(true);
     }
 
@@ -1314,6 +1400,7 @@ public class XRIHybridDemoDriver : MonoBehaviour
     {
         Transform cameraTransform = xriCamera.transform;
         Vector3 position = cameraTransform.TransformPoint(cameraOffset);
+        Vector3 visualPosition = ScalePointFromCamera(position, controllerVisualPoseScale);
         Vector3 aimPoint = cameraTransform.position +
             cameraTransform.forward * handAimDistance +
             cameraTransform.right * horizontalAimOffset;
@@ -1327,7 +1414,7 @@ public class XRIHybridDemoDriver : MonoBehaviour
             handTransform.SetPositionAndRotation(position, rayRotation);
 
         if (visualAnchor != null)
-            visualAnchor.SetPositionAndRotation(position, visualRotation);
+            visualAnchor.SetPositionAndRotation(visualPosition, visualRotation);
     }
 
     private void UpdateOfficialRayVisuals()
@@ -1417,6 +1504,10 @@ public class XRIHybridDemoDriver : MonoBehaviour
         out Vector3 renderOrigin,
         out Vector3 renderEnd)
     {
+        float visualDistanceScale = Mathf.Max(0.01f, rayVisualDistanceScale);
+        targetOrigin = ScalePointFromCamera(targetOrigin, visualDistanceScale);
+        targetEnd = ScalePointFromCamera(targetEnd, visualDistanceScale);
+
         renderOrigin = targetOrigin;
         renderEnd = targetEnd;
         if (!smoothOfficialRayFollow || rayState == null)
@@ -1447,6 +1538,16 @@ public class XRIHybridDemoDriver : MonoBehaviour
 
         renderOrigin = targetOrigin;
         renderEnd = rayState.CurrentRenderEnd;
+    }
+
+    private Vector3 ScalePointFromCamera(Vector3 worldPoint, float distanceScale)
+    {
+        float safeScale = Mathf.Max(0.01f, distanceScale);
+        if (xriCamera == null || Mathf.Abs(safeScale - 1f) < 0.0001f)
+            return worldPoint;
+
+        Vector3 cameraPosition = xriCamera.transform.position;
+        return cameraPosition + (worldPoint - cameraPosition) * safeScale;
     }
 
     private static void SetDrivenRayLinePositions(LineRenderer lineRenderer, Vector3 origin, Vector3 end)
