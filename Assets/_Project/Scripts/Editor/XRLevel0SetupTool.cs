@@ -679,10 +679,20 @@ public static class XRLevel0SetupTool
             xriCharacter.stepOffset = desktopCharacter.stepOffset;
             xriCharacter.slopeLimit = desktopCharacter.slopeLimit;
             xriCharacter.skinWidth = desktopCharacter.skinWidth;
+
+            if (!isLevel45)
+            {
+                xriCharacter.height = desktopCharacter.height;
+                xriCharacter.center = desktopCharacter.center;
+            }
         }
 
         if (desktopController != null && driver != null)
+        {
             driver.minHeight = desktopController.CrouchHeight;
+            if (!isLevel45 && desktopCharacter != null)
+                driver.maxHeight = desktopCharacter.height;
+        }
 
         if (xriCamera != null)
             xriCamera.nearClipPlane = 0.05f;
