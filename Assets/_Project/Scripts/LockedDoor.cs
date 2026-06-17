@@ -13,6 +13,13 @@ public class LockedDoor : MonoBehaviour, IInteractable
     [SerializeField] private float lockedJiggleAngle = 6f;
     [SerializeField] private float lockedJiggleDuration = 0.25f;
 
+    [Header("Void Sequence")]
+    [SerializeField] private bool triggerVoidSequenceOnOpen;
+    [SerializeField] private string transitionSceneName = "Level45";
+    [SerializeField] private Transform darkPullTarget;
+    [SerializeField] private DoorVoidTransitionSettings voidSequenceSettings =
+        DoorVoidTransitionSettings.CreateDefault();
+
     private bool isOpen;
     private float targetAngle;
     private float currentAngle;
@@ -20,6 +27,7 @@ public class LockedDoor : MonoBehaviour, IInteractable
     private AudioSource audioSource;
     private float lockedJiggleTimer;
     private Quaternion closedLocalRotation = Quaternion.identity;
+    private bool voidSequenceTriggered;
 
     private void Awake()
     {
@@ -64,6 +72,15 @@ public class LockedDoor : MonoBehaviour, IInteractable
 
         isOpen = true;
         targetAngle = openAngle;
+
+        if (triggerVoidSequenceOnOpen && !voidSequenceTriggered)
+        {
+            voidSequenceTriggered = SceneTransitionController.TryBeginDoorVoidTransition(
+                transitionSceneName,
+                darkPullTarget != null ? darkPullTarget : doorPivot,
+                voidSequenceSettings
+            );
+        }
     }
 
     public string GetInteractionPrompt()

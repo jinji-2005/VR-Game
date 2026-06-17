@@ -7,6 +7,31 @@ public class LevelTransitionTrigger : MonoBehaviour, IInteractable
     [SerializeField] private bool triggerOnEnter = true;
     [SerializeField] private string interactionPrompt = "<b><color=#FFD700>[E]</color></b> Enter";
 
+    [Header("Void Drop Transition")]
+    [SerializeField] private bool useVoidDropTransition = true;
+    [SerializeField] private VoidDropTransitionSettings voidDropTransition =
+        VoidDropTransitionSettings.CreateDefault();
+
+    private bool transitionRequested;
+
+    private void Reset()
+    {
+        if (string.IsNullOrWhiteSpace(nextSceneName))
+            nextSceneName = "Level45";
+
+        voidDropTransition = VoidDropTransitionSettings.CreateDefault();
+    }
+
+    private void OnValidate()
+    {
+        if (voidDropTransition.dropDuration <= 0f &&
+            voidDropTransition.fadeOutDuration <= 0f &&
+            voidDropTransition.fadeInDuration <= 0f)
+        {
+            voidDropTransition = VoidDropTransitionSettings.CreateDefault();
+        }
+    }
+
     private void OnTriggerEnter(Collider other)
     {
         if (!triggerOnEnter)
@@ -30,6 +55,9 @@ public class LevelTransitionTrigger : MonoBehaviour, IInteractable
 
     private void TryLoadNextScene()
     {
+        if (transitionRequested || SceneTransitionController.IsTransitionRunning)
+            return;
+
         Debug.Log($"Transition to next level: {nextSceneName}");
 
         if (string.IsNullOrEmpty(nextSceneName))
@@ -40,6 +68,14 @@ public class LevelTransitionTrigger : MonoBehaviour, IInteractable
 
         if (Application.CanStreamedLevelBeLoaded(nextSceneName))
         {
+            transitionRequested = true;
+
+            if (useVoidDropTransition &&
+                SceneTransitionController.TryBeginVoidDropTransition(nextSceneName, voidDropTransition))
+            {
+                return;
+            }
+
             SceneManager.LoadScene(nextSceneName);
         }
         else
