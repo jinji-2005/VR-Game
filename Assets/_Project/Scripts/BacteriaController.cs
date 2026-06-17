@@ -114,6 +114,8 @@ public class BacteriaController : MonoBehaviour
 
     public float CurrentMoveSpeed => currentMoveSpeed;
     public float MaxConfiguredSpeed => Mathf.Max(patrolSpeed, chaseSpeed, investigateSpeed, 0.01f);
+    public bool HasVisualContactWithPlayer { get; private set; }
+    public float ChaseStopContactDistance => Mathf.Max(0.35f, stoppingDistance * 0.7f);
 
     public void StopChaseSound()
     {
@@ -244,6 +246,8 @@ public class BacteriaController : MonoBehaviour
         currentState = newState;
         ResetMovementRecovery();
         ResetPatrolEscape();
+        if (newState != State.Chase)
+            HasVisualContactWithPlayer = false;
 
         // Stop chase sound when leaving Chase state
         if (chaseAudioSource != null && chaseAudioSource.isPlaying)
@@ -336,6 +340,7 @@ public class BacteriaController : MonoBehaviour
         }
 
         bool canSeePlayer = CanImmediatelyChasePlayer() || CanDetectPlayer(loseRange, requireSight: true);
+        HasVisualContactWithPlayer = canSeePlayer;
         if (canSeePlayer)
         {
             lostSightTimer = lostSightPatrolDelay;
@@ -358,8 +363,7 @@ public class BacteriaController : MonoBehaviour
         }
 
         Vector3 chaseTarget = canSeePlayer ? playerTarget.transform.position : lastKnownPlayerPosition;
-        float chaseStopDistance = Mathf.Max(0.35f, stoppingDistance * 0.7f);
-        if (MoveTowards(chaseTarget, chaseSpeed, chaseStopDistance, GetAlertLeashRadius()))
+        if (MoveTowards(chaseTarget, chaseSpeed, ChaseStopContactDistance, GetAlertLeashRadius()))
             return;
 
         FaceTowards(chaseTarget);

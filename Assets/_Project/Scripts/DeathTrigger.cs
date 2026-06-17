@@ -4,6 +4,7 @@ using UnityEngine.SceneManagement;
 public class DeathTrigger : MonoBehaviour
 {
     [SerializeField] private float killDistance = 1.2f;
+    [SerializeField] private float chaseCatchPadding = 0.25f;
     [SerializeField] private float verticalKillDistance = 1.6f;
     [SerializeField] private Vector3 attackPointOffset = new Vector3(0f, 1.35f, 0f);
     [SerializeField] private GameObject player;
@@ -51,9 +52,10 @@ public class DeathTrigger : MonoBehaviour
         Vector3 offset = playerPoint - attackPoint;
         float verticalOffset = Mathf.Abs(offset.y);
         offset.y = 0f;
+        float effectiveKillDistance = GetEffectiveKillDistance();
 
         if (verticalOffset <= verticalKillDistance &&
-            offset.sqrMagnitude < killDistance * killDistance)
+            offset.sqrMagnitude < effectiveKillDistance * effectiveKillDistance)
         {
             TriggerDeath();
         }
@@ -222,5 +224,17 @@ public class DeathTrigger : MonoBehaviour
             return player.transform.position + Vector3.up * 0.9f;
 
         return transform.position;
+    }
+
+    private float GetEffectiveKillDistance()
+    {
+        if (bacteriaController == null ||
+            bacteriaController.currentState != BacteriaController.State.Chase ||
+            !bacteriaController.HasVisualContactWithPlayer)
+        {
+            return killDistance;
+        }
+
+        return Mathf.Max(killDistance, bacteriaController.ChaseStopContactDistance + chaseCatchPadding);
     }
 }
