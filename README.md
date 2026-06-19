@@ -4,7 +4,7 @@
   <img src="Docs/Images/readme/README_opening_intro.png" alt="后室阈界引子" width="900">
 </p>
 
-本项目是 AI3618 2025-2026 春季学期的 Unity 第一人称后室主题恐怖探索游戏 Demo。当前开发重点围绕场景氛围塑造、实体追逐、层级切换，以及可在 Unity Editor 中直接演示的交互体验展开。项目同时保留了 XR Interaction Toolkit 相关结构，方便后续继续适配 VR 设备。
+本项目是 AI3618 2025-2026 春季学期的 Unity 第一人称后室主题恐怖探索游戏。当前开发重点围绕场景氛围塑造、实体追逐、层级切换，以及可在 Unity Editor 中直接演示的交互体验展开。项目同时保留了 XR Interaction Toolkit 相关结构，方便后续继续适配 VR 设备。
 
 ## 项目简介
 
@@ -13,7 +13,7 @@
 - **当前运行方式**：以 Unity Editor 中的桌面预览为主
 - **后续扩展方向**：在现有项目结构基础上继续兼容 XR / VR 设备适配
 
-## 当前游戏内容
+## 游戏内容
 
 ### Level 0 - “阈界”
 
