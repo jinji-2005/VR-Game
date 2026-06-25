@@ -378,10 +378,10 @@ public class PlayerRespawnController : MonoBehaviour
             },
             new RespawnCheckpoint
             {
-                name = "Wreckage Span",
-                position = new Vector3(26.45f, 93.1f, 212.03f),
-                activationRadius = 14f,
-                heightTolerance = 10f
+                name = "Building3 Rooftop",
+                position = new Vector3(20.5f, 96.5f, 268.5f),
+                activationRadius = 16f,
+                heightTolerance = 14f
             }
         };
     }

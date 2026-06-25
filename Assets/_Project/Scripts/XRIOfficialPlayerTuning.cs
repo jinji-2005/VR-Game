@@ -20,9 +20,11 @@ public class XRIOfficialPlayerTuning : MonoBehaviour
 
     private InputAction sprintAction;
     private bool enabledSprintActionLocally;
+    private XRIHybridDemoDriver hybridDemoDriver;
 
     public CharacterController BodyController => bodyController;
     public GameObject PlayerTarget => bodyController != null ? bodyController.gameObject : gameObject;
+    public bool IsProducingRunNoise { get; private set; }
     public bool IsProducingFootstepNoise { get; private set; }
     public float MovementNoiseStrength { get; private set; }
 
@@ -30,6 +32,8 @@ public class XRIOfficialPlayerTuning : MonoBehaviour
     {
         if (bodyController != null)
             bodyController.gameObject.tag = "Player";
+
+        CacheHybridDemoDriver();
 
         sprintAction = xriInputActions != null ? xriInputActions.FindAction(sprintActionPath) : null;
         if (sprintAction != null && !sprintAction.enabled)
@@ -51,12 +55,21 @@ public class XRIOfficialPlayerTuning : MonoBehaviour
             moveProvider.moveSpeed = walkSpeed;
 
         StopMovementAudio();
-        IsProducingFootstepNoise = false;
-        MovementNoiseStrength = 0f;
+        StopAllNoise();
     }
 
     private void Update()
     {
+        if (hybridDemoDriver == null)
+            CacheHybridDemoDriver();
+
+        if (hybridDemoDriver != null && hybridDemoDriver.isActiveAndEnabled)
+        {
+            ApplyHybridMovementNoise();
+            UpdateMovementAudio(IsProducingRunNoise);
+            return;
+        }
+
         if (moveProvider == null)
             return;
 
@@ -76,14 +89,21 @@ public class XRIOfficialPlayerTuning : MonoBehaviour
             moveProvider.enabled = false;
 
         StopMovementAudio();
+        StopAllNoise();
+    }
+
+    private void StopAllNoise()
+    {
+        IsProducingRunNoise = false;
+        IsProducingFootstepNoise = false;
+        MovementNoiseStrength = 0f;
     }
 
     private void UpdateMovementNoise(bool crouching, bool sprinting)
     {
         if (bodyController == null)
         {
-            IsProducingFootstepNoise = false;
-            MovementNoiseStrength = 0f;
+            StopAllNoise();
             return;
         }
 
@@ -92,8 +112,7 @@ public class XRIOfficialPlayerTuning : MonoBehaviour
         bool audibleMovement = !crouching && bodyController.isGrounded && movement.magnitude > 0.2f;
         if (!audibleMovement)
         {
-            IsProducingFootstepNoise = false;
-            MovementNoiseStrength = 0f;
+            StopAllNoise();
             return;
         }
 
@@ -101,6 +120,14 @@ public class XRIOfficialPlayerTuning : MonoBehaviour
         float inputMagnitude = Mathf.Clamp01(movement.magnitude / Mathf.Max(walkSpeed, 0.01f));
         MovementNoiseStrength = baseNoise * Mathf.Lerp(0.55f, 1f, inputMagnitude);
         IsProducingFootstepNoise = MovementNoiseStrength > 0.05f;
+        IsProducingRunNoise = sprinting && IsProducingFootstepNoise;
+    }
+
+    private void ApplyHybridMovementNoise()
+    {
+        IsProducingRunNoise = hybridDemoDriver.IsProducingRunNoise;
+        IsProducingFootstepNoise = hybridDemoDriver.IsProducingFootstepNoise;
+        MovementNoiseStrength = hybridDemoDriver.MovementNoiseStrength;
     }
 
     private void UpdateMovementAudio(bool sprinting)
@@ -120,6 +147,13 @@ public class XRIOfficialPlayerTuning : MonoBehaviour
             runningAudioSource.volume,
             targetVolume,
             Time.deltaTime * 12f);
+    }
+
+    private void CacheHybridDemoDriver()
+    {
+        hybridDemoDriver = GetComponent<XRIHybridDemoDriver>() ??
+            GetComponentInParent<XRIHybridDemoDriver>() ??
+            GetComponentInChildren<XRIHybridDemoDriver>(true);
     }
 
     private void StopMovementAudio()

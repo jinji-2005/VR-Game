@@ -2032,10 +2032,10 @@ MonoBehaviour:
     position: {x: 8.22, y: 39.25, z: 93.59}
     activationRadius: 14
     heightTolerance: 10
-  - name: Wreckage Span
-    position: {x: 26.45, y: 93.1, z: 212.03}
-    activationRadius: 14
-    heightTolerance: 10
+  - name: Building3 Rooftop
+    position: {x: 20.5, y: 96.5, z: 268.5}
+    activationRadius: 16
+    heightTolerance: 14
   showCheckpointVisuals: 1
   visualHeightOffset: 1.3
   checkpointLightRange: 9

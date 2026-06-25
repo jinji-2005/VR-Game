@@ -127,6 +127,9 @@ public class XRIHybridDemoDriver : MonoBehaviour
     }
 
     public static XRIHybridDemoDriver ActiveDriver { get; private set; }
+    public bool IsProducingRunNoise { get; private set; }
+    public bool IsProducingFootstepNoise { get; private set; }
+    public float MovementNoiseStrength { get; private set; }
 
     private void Awake()
     {
@@ -168,6 +171,7 @@ public class XRIHybridDemoDriver : MonoBehaviour
         RestoreOfficialInputDrivers();
         RestoreOfficialLocomotion();
         StopMovementAudio();
+        StopAllNoise();
         velocity = Vector3.zero;
         isCrouching = false;
         inputFrozen = false;
@@ -295,6 +299,7 @@ public class XRIHybridDemoDriver : MonoBehaviour
         inputFrozen = true;
         velocity = Vector3.zero;
         StopMovementAudio();
+        StopAllNoise();
         DisableOfficialLocomotion();
         DisableOfficialInputDrivers();
     }
@@ -604,9 +609,6 @@ public class XRIHybridDemoDriver : MonoBehaviour
 
     private void UpdateMovementAudio(Vector3 move, bool isSprinting)
     {
-        if (runningAudioSource == null)
-            return;
-
         bool shouldRunSound =
             isSprinting &&
             !isCrouching &&
@@ -614,6 +616,11 @@ public class XRIHybridDemoDriver : MonoBehaviour
             bodyController != null &&
             bodyController.isGrounded &&
             velocity.y <= 0.1f;
+
+        UpdateMovementNoise(move, shouldRunSound);
+
+        if (runningAudioSource == null)
+            return;
 
         if (shouldRunSound && !runningAudioSource.isPlaying)
         {
@@ -626,6 +633,35 @@ public class XRIHybridDemoDriver : MonoBehaviour
             runningAudioSource.volume,
             targetVolume,
             Time.deltaTime * 12f);
+    }
+
+    private void UpdateMovementNoise(Vector3 move, bool isRunningAudibly)
+    {
+        bool audibleMovement =
+            !isCrouching &&
+            move.magnitude > 0.2f &&
+            bodyController != null &&
+            bodyController.isGrounded &&
+            velocity.y <= 0.1f;
+
+        if (!audibleMovement)
+        {
+            StopAllNoise();
+            return;
+        }
+
+        float baseNoise = isRunningAudibly ? 1f : 0.68f;
+        float inputMagnitude = Mathf.Clamp01(move.magnitude);
+        MovementNoiseStrength = baseNoise * Mathf.Lerp(0.55f, 1f, inputMagnitude);
+        IsProducingFootstepNoise = MovementNoiseStrength > 0.05f;
+        IsProducingRunNoise = isRunningAudibly && IsProducingFootstepNoise;
+    }
+
+    private void StopAllNoise()
+    {
+        IsProducingRunNoise = false;
+        IsProducingFootstepNoise = false;
+        MovementNoiseStrength = 0f;
     }
 
     private void PlayJumpAudio()

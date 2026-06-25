@@ -173,6 +173,9 @@ public class PlayerController : MonoBehaviour
             speed *= sprintMultiplier;
 
         Vector3 move = transform.right * moveX + transform.forward * moveZ;
+        if (move.sqrMagnitude > 1f)
+            move.Normalize();
+
         characterController.Move(move * (speed * Time.deltaTime));
 
         bool isMoving = move.magnitude > 0.2f;
@@ -184,6 +187,8 @@ public class PlayerController : MonoBehaviour
             isMoving &&
             isRecentlyGrounded &&
             velocity.y <= 0.1f;
+        bool shouldRunSound = isSprinting && isAudibleMovement;
+        IsProducingRunNoise = shouldRunSound;
         float inputMagnitude = Mathf.Clamp01(new Vector2(moveX, moveZ).magnitude);
 
         if (isAudibleMovement)
@@ -205,12 +210,6 @@ public class PlayerController : MonoBehaviour
         // running sound: hold Shift + moving + grounded → loop
         if (runningAudioSource != null)
         {
-            bool shouldRunSound =
-                isSprinting &&
-                isAudibleMovement;
-
-            IsProducingRunNoise = shouldRunSound;
-
             if (!runningAudioSource.isPlaying)
             {
                 runningAudioSource.loop = true;
@@ -225,11 +224,6 @@ public class PlayerController : MonoBehaviour
                 Time.deltaTime * 12f
             );
         }
-        else
-        {
-            IsProducingRunNoise = false;
-        }
-
         if (Input.GetKeyDown(KeyCode.Space))
             lastJumpPressTime = Time.time;
 

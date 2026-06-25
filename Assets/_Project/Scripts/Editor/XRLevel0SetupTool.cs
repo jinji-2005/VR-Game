@@ -427,6 +427,7 @@ public static class XRLevel0SetupTool
         {
             simulator.SetActive(useOfficialRig);
             SetXRDeviceSimulatorInputEnabled(simulator, !useHybridXRI);
+            SetXRDeviceSimulatorUIVisible(simulator, useOfficialXRI);
         }
 
         if (useOfficialRig && !hasOfficialRig)
@@ -467,6 +468,39 @@ public static class XRLevel0SetupTool
             {
                 behaviour.enabled = enabled;
             }
+        }
+    }
+
+    private static void SetXRDeviceSimulatorUIVisible(GameObject simulator, bool visible)
+    {
+        if (simulator == null)
+            return;
+
+        foreach (MonoBehaviour behaviour in simulator.GetComponentsInChildren<MonoBehaviour>(true))
+        {
+            if (behaviour == null)
+                continue;
+
+            Type behaviourType = behaviour.GetType();
+            if (string.Equals(behaviourType.Name, "XRDeviceSimulatorUI", StringComparison.Ordinal) ||
+                behaviourType.Name.StartsWith("XRDeviceSimulator", StringComparison.Ordinal) &&
+                behaviourType.Name.EndsWith("UI", StringComparison.Ordinal))
+            {
+                behaviour.enabled = visible;
+            }
+        }
+
+        foreach (Canvas canvas in simulator.GetComponentsInChildren<Canvas>(true))
+            canvas.enabled = visible;
+
+        foreach (GraphicRaycaster raycaster in simulator.GetComponentsInChildren<GraphicRaycaster>(true))
+            raycaster.enabled = visible;
+
+        foreach (CanvasGroup canvasGroup in simulator.GetComponentsInChildren<CanvasGroup>(true))
+        {
+            canvasGroup.alpha = visible ? 1f : 0f;
+            canvasGroup.interactable = visible;
+            canvasGroup.blocksRaycasts = visible;
         }
     }
 

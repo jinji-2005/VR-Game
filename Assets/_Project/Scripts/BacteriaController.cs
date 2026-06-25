@@ -437,10 +437,10 @@ public class BacteriaController : MonoBehaviour
         if (currentState == State.Chase)
             return;
 
-        if (!CanHearPlayerMovement(out Vector3 soundTarget, out float heardStrength))
+        if (!CanHearPlayerMovement(out Vector3 soundTarget, out bool heardRunNoise))
             return;
 
-        if (CanImmediatelyChasePlayer() || heardStrength >= hearingChaseThreshold)
+        if (CanImmediatelyChasePlayer() || heardRunNoise)
         {
             RememberPlayerPosition(soundTarget);
             EnterState(State.Chase);
@@ -603,10 +603,10 @@ public class BacteriaController : MonoBehaviour
         return true;
     }
 
-    private bool CanHearPlayerMovement(out Vector3 soundTarget, out float heardStrength)
+    private bool CanHearPlayerMovement(out Vector3 soundTarget, out bool heardRunNoise)
     {
         soundTarget = transform.position;
-        heardStrength = 0f;
+        heardRunNoise = false;
 
         if (!HasPlayerReference())
             return false;
@@ -620,6 +620,10 @@ public class BacteriaController : MonoBehaviour
         if (!isProducingFootstepNoise)
             return false;
 
+        bool isProducingRunNoise = playerController != null
+            ? playerController.IsProducingRunNoise
+            : xriPlayerTuning != null && xriPlayerTuning.IsProducingRunNoise;
+
         Vector3 playerPosition = playerTarget.transform.position;
         if (Mathf.Abs(playerPosition.y - patrolOrigin.y) > maxHearingVerticalDifference)
             return false;
@@ -630,7 +634,7 @@ public class BacteriaController : MonoBehaviour
         if (planarDistance <= 0.001f)
         {
             soundTarget = playerPosition;
-            heardStrength = 1f;
+            heardRunNoise = isProducingRunNoise;
             return true;
         }
 
@@ -647,8 +651,7 @@ public class BacteriaController : MonoBehaviour
             return false;
 
         soundTarget = playerPosition;
-        float distanceFactor = 1f - Mathf.Clamp01(planarDistance / Mathf.Max(effectiveHearingRange, 0.01f));
-        heardStrength = Mathf.Clamp01(baseNoiseStrength * 0.7f + distanceFactor * 0.6f);
+        heardRunNoise = isProducingRunNoise;
         return true;
     }
 
